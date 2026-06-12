@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #f7f5ef;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-noto-sans-sc), "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #101820;
+}
+
+a {
+  text-decoration: none;
+}
+
+.app-phone-shell {
+  background:
+    linear-gradient(90deg, rgba(16, 24, 32, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(16, 24, 32, 0.025) 1px, transparent 1px),
+    #f7f5ef;
+  background-size: 28px 28px;
+}
+
+.hero-carousel-slide {
+  opacity: 0;
+  animation: heroCarousel 15s infinite;
+}
+
+@keyframes heroCarousel {
+  0%,
+  28% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  33%,
+  100% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
