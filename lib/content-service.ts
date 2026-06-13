@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_noStore as noStore } from "next/cache";
 import { getPgPool } from "@/lib/postgres";
 import { getCachedServerData } from "@/lib/server-cache";
+import { getServerSupabaseClient } from "@/lib/supabase-server";
 import {
   allNewsItems,
   getDetailItem,
@@ -27,6 +28,9 @@ type WorldCupItemRow = {
   title: string;
   video_url: string | null;
 };
+
+const itemColumns =
+  "id, section, title, eyebrow, summary, slug, image_url, source, published_at, content_type, video_url, external_url, tags, body";
 
 function formatDate(value: Date | string | null) {
   if (!value) {
@@ -103,41 +107,67 @@ function fallbackItems(section: SectionKey, limit?: number) {
   return limit ? fallback.slice(0, limit) : fallback;
 }
 
+async function queryItemsFromSupabase(section: SectionKey, limit: number) {
+  const supabase = getServerSupabaseClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("worldcup_items")
+    .select(itemColumns)
+    .eq("section", section)
+    .order("published_at", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .limit(Math.max(limit * 3, limit));
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as WorldCupItemRow[];
+}
+
+async function queryItemsFromPostgres(section: SectionKey, limit: number) {
+  const pool = getPgPool();
+  if (!pool) {
+    return null;
+  }
+
+  const { rows } = await pool.query<WorldCupItemRow>(
+    `
+      select ${itemColumns}
+      from public.worldcup_items
+      where section = $1
+      order by published_at desc, updated_at desc
+      limit $2
+    `,
+    [section, Math.max(limit * 3, limit)]
+  );
+
+  return rows;
+}
+
+async function loadSectionItems(section: SectionKey, limit: number) {
+  const rows =
+    (await queryItemsFromSupabase(section, limit).catch((error) => {
+      console.warn("Supabase REST query failed for content list; trying Postgres.", error);
+      return null;
+    })) ?? (await queryItemsFromPostgres(section, limit));
+
+  return rows ?? [];
+}
+
 export async function getNewsItems(section: SectionKey, limit = 20): Promise<NewsItem[]> {
   noStore();
-  const pool = getPgPool();
 
-  if (!pool || (section !== "headlines" && section !== "videos")) {
+  if (section !== "headlines" && section !== "videos") {
     return fallbackItems(section, limit);
   }
 
   try {
     return await getCachedServerData(`content:list:${section}:${limit}`, async () => {
-      const { rows } = await pool.query<WorldCupItemRow>(
-        `
-          select
-            id,
-            section,
-            title,
-            eyebrow,
-            summary,
-            slug,
-            image_url,
-            source,
-            published_at,
-            content_type,
-            video_url,
-            external_url,
-            tags,
-            body
-          from public.worldcup_items
-          where section = $1
-          order by published_at desc, updated_at desc
-          limit $2
-        `,
-        [section, Math.max(limit * 3, limit)]
-      );
-
+      const rows = await loadSectionItems(section, limit);
       return rows.length > 0 ? uniqueByImage(rows.map(toNewsItem), limit) : fallbackItems(section, limit);
     });
   } catch (error) {
@@ -148,30 +178,34 @@ export async function getNewsItems(section: SectionKey, limit = 20): Promise<New
 
 export async function getAllDynamicNewsItems(): Promise<NewsItem[]> {
   noStore();
-  const pool = getPgPool();
-
-  if (!pool) {
-    return allNewsItems;
-  }
 
   try {
     return await getCachedServerData("content:all-dynamic", async () => {
+      const supabase = getServerSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("worldcup_items")
+          .select(itemColumns)
+          .in("section", ["headlines", "videos"])
+          .order("published_at", { ascending: false })
+          .order("updated_at", { ascending: false });
+
+        if (!error && data?.length) {
+          return (data as WorldCupItemRow[]).map(toNewsItem);
+        }
+
+        if (error) {
+          console.warn("Supabase REST query failed for all content; trying Postgres.", error);
+        }
+      }
+
+      const pool = getPgPool();
+      if (!pool) {
+        return allNewsItems;
+      }
+
       const { rows } = await pool.query<WorldCupItemRow>(`
-        select
-          id,
-          section,
-          title,
-          eyebrow,
-          summary,
-          slug,
-          image_url,
-          source,
-          published_at,
-          content_type,
-          video_url,
-          external_url,
-          tags,
-          body
+        select ${itemColumns}
         from public.worldcup_items
         where section in ('headlines', 'videos')
         order by published_at desc, updated_at desc
@@ -192,31 +226,35 @@ export async function getNewsItemBySlug(section: string, slug: string): Promise<
     return getDetailItem(section, slug);
   }
 
-  const pool = getPgPool();
-
-  if (!pool) {
-    return getDetailItem(section, slug);
-  }
-
   try {
     return await getCachedServerData(`content:detail:${section}:${slug}`, async () => {
+      const supabase = getServerSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("worldcup_items")
+          .select(itemColumns)
+          .eq("section", section)
+          .eq("slug", slug)
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          return toNewsItem(data as WorldCupItemRow);
+        }
+
+        if (error) {
+          console.warn("Supabase REST query failed for content detail; trying Postgres.", error);
+        }
+      }
+
+      const pool = getPgPool();
+      if (!pool) {
+        return getDetailItem(section, slug);
+      }
+
       const { rows } = await pool.query<WorldCupItemRow>(
         `
-          select
-            id,
-            section,
-            title,
-            eyebrow,
-            summary,
-            slug,
-            image_url,
-            source,
-            published_at,
-            content_type,
-            video_url,
-            external_url,
-            tags,
-            body
+          select ${itemColumns}
           from public.worldcup_items
           where section = $1 and slug = $2
           limit 1
@@ -234,31 +272,37 @@ export async function getNewsItemBySlug(section: string, slug: string): Promise<
 
 export async function getRelatedNewsItems(item: NewsItem, limit = 4): Promise<NewsItem[]> {
   noStore();
-  const pool = getPgPool();
-
-  if (!pool) {
-    return allNewsItems.filter((related) => related.section === item.section && related.id !== item.id).slice(0, limit);
-  }
 
   try {
     return await getCachedServerData(`content:related:${item.section}:${item.id}:${limit}`, async () => {
+      const supabase = getServerSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("worldcup_items")
+          .select(itemColumns)
+          .eq("section", item.section)
+          .neq("id", item.id)
+          .order("published_at", { ascending: false })
+          .order("updated_at", { ascending: false })
+          .limit(limit);
+
+        if (!error && data) {
+          return (data as WorldCupItemRow[]).map(toNewsItem);
+        }
+
+        if (error) {
+          console.warn("Supabase REST query failed for related content; trying Postgres.", error);
+        }
+      }
+
+      const pool = getPgPool();
+      if (!pool) {
+        return allNewsItems.filter((related) => related.section === item.section && related.id !== item.id).slice(0, limit);
+      }
+
       const { rows } = await pool.query<WorldCupItemRow>(
         `
-          select
-            id,
-            section,
-            title,
-            eyebrow,
-            summary,
-            slug,
-            image_url,
-            source,
-            published_at,
-            content_type,
-            video_url,
-            external_url,
-            tags,
-            body
+          select ${itemColumns}
           from public.worldcup_items
           where section = $1 and id <> $2
           order by published_at desc, updated_at desc

@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_noStore as noStore } from "next/cache";
 import { getPgPool } from "@/lib/postgres";
 import { getCachedServerData } from "@/lib/server-cache";
+import { getServerSupabaseClient } from "@/lib/supabase-server";
 import { scheduleDays, type ScheduleDay } from "@/lib/schedule-data";
 
 export type ScheduleMatchDetailFocusItem = {
@@ -157,14 +158,32 @@ function toScheduleMatchDetail(row: ScheduleDetailRow): ScheduleMatchDetail {
 export async function getScheduleDays(): Promise<ScheduleDay[]> {
   noStore();
 
-  const pool = getPgPool();
-
-  if (!pool) {
-    return scheduleDays;
-  }
-
   try {
     return await getCachedServerData("schedule:days", async () => {
+      const supabase = getServerSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("worldcup_schedule_view")
+          .select(
+            "day_id, date_text, day_display_order, match_id, match_order, kick_time, match_stage, home_name, home_logo_url, home_score, away_name, away_logo_url, away_score, status_text, live_text, slug"
+          )
+          .order("day_display_order", { ascending: true })
+          .order("match_order", { ascending: true });
+
+        if (!error && data?.length) {
+          return rowsToScheduleDays(data as ScheduleRow[]);
+        }
+
+        if (error) {
+          console.warn("Supabase REST query failed for schedule; trying Postgres.", error);
+        }
+      }
+
+      const pool = getPgPool();
+      if (!pool) {
+        return scheduleDays;
+      }
+
       const { rows } = await pool.query<ScheduleRow>(`
         select
           day_id,
@@ -198,13 +217,33 @@ export async function getScheduleDays(): Promise<ScheduleDay[]> {
 export async function getScheduleMatchDetailBySlug(slug: string): Promise<ScheduleMatchDetail | null> {
   noStore();
 
-  const pool = getPgPool();
-  if (!pool) {
-    return null;
-  }
-
   try {
     return await getCachedServerData(`schedule:detail:${slug}`, async () => {
+      const supabase = getServerSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("worldcup_schedule_match_details")
+          .select(
+            "title, slug, match_stage, kick_label, home_name, home_logo_url, home_rank_text, home_score, away_name, away_logo_url, away_rank_text, away_score, status_text, winner, report_title, report_provider, report_url, report_image_url, focus_items, incidents, venue, attendance, source_url"
+          )
+          .eq("slug", slug)
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          return toScheduleMatchDetail(data as ScheduleDetailRow);
+        }
+
+        if (error) {
+          console.warn("Supabase REST query failed for schedule detail; trying Postgres.", error);
+        }
+      }
+
+      const pool = getPgPool();
+      if (!pool) {
+        return null;
+      }
+
       const { rows } = await pool.query<ScheduleDetailRow>(
         `
           select

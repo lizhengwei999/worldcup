@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_noStore as noStore } from "next/cache";
 import { getPgPool } from "@/lib/postgres";
 import { getCachedServerData } from "@/lib/server-cache";
+import { getServerSupabaseClient } from "@/lib/supabase-server";
 import {
   standingGroups,
   standingItems,
@@ -108,14 +109,32 @@ function standingsDetailFromTeam(team: StandingItem, group?: StandingGroup): New
 export async function getStandingGroups(): Promise<StandingGroup[]> {
   noStore();
 
-  const pool = getPgPool();
-
-  if (!pool) {
-    return standingGroups;
-  }
-
   try {
     return await getCachedServerData("standings:groups", async () => {
+      const supabase = getServerSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("worldcup_group_standings")
+          .select(
+            "group_code, group_display_order, team_id, team_name, logo_url, slug, group_rank, played, wins, draws, losses, goals_for, goals_against, goal_diff, points"
+          )
+          .order("group_display_order", { ascending: true })
+          .order("group_rank", { ascending: true });
+
+        if (!error && data?.length) {
+          return rowsToGroups(data as StandingRow[]);
+        }
+
+        if (error) {
+          console.warn("Supabase REST query failed for standings; trying Postgres.", error);
+        }
+      }
+
+      const pool = getPgPool();
+      if (!pool) {
+        return standingGroups;
+      }
+
       const { rows } = await pool.query<StandingRow>(`
         select
           group_code,
