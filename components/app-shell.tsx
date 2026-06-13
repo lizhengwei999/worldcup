@@ -12,13 +12,11 @@ const tabs = [
     label: "首页",
     icon: Home
   },
-  ...sections
-    .filter((section) => section.key !== "headlines")
-    .map((section) => ({
-      href: section.href,
-      label: section.shortTitle,
-      icon: section.icon
-    }))
+  ...sections.map((section) => ({
+    href: section.href,
+    label: section.shortTitle,
+    icon: section.icon
+  }))
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -38,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#0B55D9] via-[#0B55D9]/55 to-transparent"
         />
         <div className="absolute inset-x-0 top-0 h-px bg-white/10" aria-hidden />
-        <div className="relative grid grid-cols-4 px-2 pt-1.5">
+        <div className="relative grid grid-cols-5 px-1 pt-1.5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive =

@@ -2,8 +2,11 @@ import { CalendarDays } from "lucide-react";
 import { HomeModule } from "@/components/home-module";
 import { SchedulePageList } from "@/components/schedule-page-list";
 import { pageHeroClass } from "@/lib/page-theme";
+import { getScheduleDays } from "@/lib/schedule-service";
 
-export default function SchedulePage() {
+export default async function SchedulePage() {
+  const scheduleDays = await getScheduleDays();
+
   return (
     <main className="min-h-dvh">
       <section className={pageHeroClass}>
@@ -20,7 +23,7 @@ export default function SchedulePage() {
       </section>
 
       <HomeModule className="mt-4 pb-4">
-        <SchedulePageList />
+        <SchedulePageList scheduleDays={scheduleDays} />
       </HomeModule>
     </main>
   );

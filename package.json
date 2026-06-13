@@ -7,17 +7,25 @@
     "start": "next start",
     "build": "next build",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:schema:content": "node scripts/apply-content-schema.mjs",
+    "db:seed:standings": "node scripts/seed-standings.mjs",
+    "db:seed:headlines": "node scripts/seed-headlines.mjs",
+    "db:seed:schedule": "node scripts/seed-schedule.mjs",
+    "db:seed:match-details": "node scripts/seed-match-details.mjs",
+    "db:seed:migu-videos": "node scripts/seed-migu-videos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
     "lucide-react": "^0.468.0",
     "next": "^15.0.4",
+    "pg": "^8.21.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "autoprefixer": "^10.4.20",

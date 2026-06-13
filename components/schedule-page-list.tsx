@@ -1,12 +1,12 @@
 "use client";
 
 import { ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ScheduleMatchRow } from "@/components/schedule-match-row";
 import {
   getScheduleCountryNames,
-  scheduleDays,
-  schedulePageStartDayId
+  schedulePageStartDayId,
+  type ScheduleDay
 } from "@/lib/schedule-data";
 import {
   filterScheduleDays,
@@ -18,16 +18,16 @@ import { moduleNavShellClass } from "@/lib/page-theme";
 const filterSelectClass =
   "relative z-10 w-full cursor-pointer appearance-none rounded-[6px] border border-white/12 bg-[#1A5CC8]/35 py-2 pl-3 pr-8 text-sm text-paper/85 outline-none focus:border-white/25";
 
-const countryOptions = getScheduleCountryNames();
-
-export function SchedulePageList() {
+export function SchedulePageList({ scheduleDays }: { scheduleDays: ScheduleDay[] }) {
   const pageStartIndex = scheduleDays.findIndex((day) => day.id === schedulePageStartDayId);
   const [visibleFromIndex, setVisibleFromIndex] = useState(pageStartIndex >= 0 ? pageStartIndex : 0);
   const [timeFilter, setTimeFilter] = useState(SCHEDULE_ALL_TIME);
   const [countryFilter, setCountryFilter] = useState(SCHEDULE_ALL_COUNTRIES);
+  const countryOptions = useMemo(() => getScheduleCountryNames(scheduleDays), [scheduleDays]);
 
   const visibleDays = filterScheduleDays({
     countryFilter,
+    days: scheduleDays,
     timeFilter,
     visibleFromIndex
   });

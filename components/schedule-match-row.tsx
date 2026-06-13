@@ -34,6 +34,10 @@ export function ScheduleMatchRow({
   match: ScheduleMatch;
 }) {
   const rowSurface = index !== undefined ? standingRowSurface(index) : "";
+  const homeScore = match.homeScore && match.homeScore !== "-" ? match.homeScore : "—";
+  const awayScore = match.awayScore && match.awayScore !== "-" ? match.awayScore : "—";
+  const statusLabel = match.statusLabel ?? "未开赛";
+  const liveLabel = match.liveLabel ?? "动画直播";
 
   return (
     <Link
@@ -57,13 +61,13 @@ export function ScheduleMatchRow({
       </div>
 
       <div className="font-display space-y-1.5 text-center text-sm font-semibold tabular-nums leading-5 text-paper/55">
-        <p>—</p>
-        <p>—</p>
+        <p>{homeScore}</p>
+        <p>{awayScore}</p>
       </div>
 
       <div className="space-y-1.5 text-right text-sm font-medium leading-5 text-paper/85">
-        <p>未开赛</p>
-        <p className="text-xs text-paper/78">动画直播</p>
+        <p>{statusLabel}</p>
+        <p className="text-xs text-paper/78">{liveLabel}</p>
       </div>
     </Link>
   );

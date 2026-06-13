@@ -6,15 +6,23 @@ import { Play } from "lucide-react";
 import { ModuleNavShell, moduleTabClass } from "@/components/module-nav";
 import { useState } from "react";
 
-type VideoItem = {
+export type VideoItem = {
   duration: string;
+  externalUrl?: string | null;
   id: string;
   image: string;
   slug: string;
   title: string;
+  videoUrl?: string | null;
 };
 
-const videoTabs = [
+export type VideoSection = {
+  id: string;
+  items: VideoItem[];
+  label: string;
+};
+
+export const videoSections: VideoSection[] = [
   {
     id: "focus",
     label: "聚焦世界杯",
@@ -161,11 +169,14 @@ const videoTabs = [
   }
 ] as const;
 
+/** @deprecated 使用 videoSections */
+export const videoTabs = videoSections;
+
 function VideoCard({ item }: { item: VideoItem }) {
   return (
     <Link className="min-w-0" href={`/videos/${item.slug}`}>
       <div className="relative aspect-[1.55] overflow-hidden rounded-[7px] bg-ink">
-        <Image alt={item.title} className="object-cover" fill sizes="130px" src={item.image} />
+        <Image alt={item.title} className="object-cover" fill sizes="130px" src={item.image} unoptimized />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/45 to-transparent" />
         <span className="font-display absolute bottom-1 right-1.5 text-[11px] font-semibold tabular-nums leading-none text-paper">
           {item.duration}
@@ -181,14 +192,46 @@ function VideoCard({ item }: { item: VideoItem }) {
   );
 }
 
-export function VideoBoard() {
-  const [activeTabId, setActiveTabId] = useState<(typeof videoTabs)[number]["id"]>("focus");
-  const activeTab = videoTabs.find((tab) => tab.id === activeTabId) ?? videoTabs[0];
+function VideoSectionTitle({ label }: { label: string }) {
+  return (
+    <h2 className="px-5 text-[17px] font-bold tracking-[0.04em] text-[#BDFD38]">{label}</h2>
+  );
+}
+
+export function VideoBoard({
+  sections = videoSections,
+  variant = "tabs"
+}: {
+  sections?: VideoSection[];
+  variant?: "tabs" | "sections";
+}) {
+  const [activeTabId, setActiveTabId] = useState(sections[0]?.id ?? videoSections[0].id);
+  const activeTab = sections.find((tab) => tab.id === activeTabId) ?? sections[0] ?? videoSections[0];
+
+  if (variant === "sections") {
+    return (
+      <div className="space-y-6 pb-2">
+        {sections.map((section, sectionIndex) => (
+          <section key={section.id}>
+            <VideoSectionTitle label={section.label} />
+            <div className="mx-5 mt-3 grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-3">
+              {section.items.map((item) => (
+                <VideoCard item={item} key={item.id} />
+              ))}
+            </div>
+            {sectionIndex < sections.length - 1 ? (
+              <div className="mx-5 mt-6 border-t border-paper/10" />
+            ) : null}
+          </section>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
       <ModuleNavShell className="grid grid-cols-3 text-center">
-        {videoTabs.map((tab) => (
+        {sections.map((tab) => (
           <button
             aria-pressed={activeTabId === tab.id}
             className={`whitespace-nowrap py-2.5 transition ${moduleTabClass(activeTabId === tab.id)}`}

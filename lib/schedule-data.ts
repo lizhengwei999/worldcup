@@ -7,11 +7,15 @@ export type TeamRef = {
 
 export type ScheduleMatch = {
   away: TeamRef;
+  awayScore?: string | null;
   group: string;
   home: TeamRef;
+  homeScore?: string | null;
   id: string;
+  liveLabel?: string;
   slug: string;
   status?: "upcoming";
+  statusLabel?: string;
   time: string;
 };
 
@@ -312,14 +316,20 @@ export const scheduleDays: ScheduleDay[] = [
 
 export const schedulePageStartDayId = "06-15";
 
-export function getScheduleCountryNames() {
-  const names = standingGroups.flatMap((group) => group.teams.map((team) => team.team));
+export function getScheduleCountryNames(days = scheduleDays) {
+  const names = new Set<string>();
+  days.forEach((day) => {
+    day.matches.forEach((match) => {
+      names.add(match.home.name);
+      names.add(match.away.name);
+    });
+  });
   return [...new Set(names)].sort((left, right) => left.localeCompare(right, "zh-Hans-CN"));
 }
 
-export function getAllScheduleTeamNames() {
+export function getAllScheduleTeamNames(days = scheduleDays) {
   const names = new Set<string>();
-  scheduleDays.forEach((day) => {
+  days.forEach((day) => {
     day.matches.forEach((match) => {
       names.add(match.home.name);
       names.add(match.away.name);

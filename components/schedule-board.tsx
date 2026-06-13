@@ -4,31 +4,37 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ScheduleMatchRow } from "@/components/schedule-match-row";
 import { MODULE_NAV_ARROW, ModuleNavShell, moduleTabClass } from "@/components/module-nav";
-import {
-  getAllScheduleTeamNames,
-  scheduleDays,
-  schedulePageStartDayId
-} from "@/lib/schedule-data";
+import type { ScheduleDay, ScheduleMatch, TeamRef } from "@/lib/schedule-data";
 
-export type { ScheduleMatch, ScheduleDay, TeamRef } from "@/lib/schedule-data";
-export { getAllScheduleTeamNames, scheduleDays, schedulePageStartDayId };
+export type { ScheduleMatch, ScheduleDay, TeamRef };
 
-function visibleDays(activeDayIndex: number) {
+function visibleDays(days: ScheduleDay[], activeDayIndex: number) {
   if (activeDayIndex === 0) {
-    return scheduleDays.slice(0, 3);
+    return days.slice(0, 3);
   }
-  if (activeDayIndex >= scheduleDays.length - 2) {
-    return scheduleDays.slice(-3);
+  if (activeDayIndex >= days.length - 2) {
+    return days.slice(-3);
   }
-  return scheduleDays.slice(activeDayIndex - 1, activeDayIndex + 2);
+  return days.slice(activeDayIndex - 1, activeDayIndex + 2);
 }
 
-const defaultDayIndex = scheduleDays.findIndex((day) => day.id === "06-24");
+function getDefaultDayIndex(days: ScheduleDay[]) {
+  const preferredIndex = days.findIndex((day) => day.id === "06-14");
+  return preferredIndex >= 0 ? preferredIndex : 0;
+}
 
-export function ScheduleBoard() {
+export function ScheduleBoard({ scheduleDays }: { scheduleDays: ScheduleDay[] }) {
+  const defaultDayIndex = getDefaultDayIndex(scheduleDays);
   const [activeDayIndex, setActiveDayIndex] = useState(defaultDayIndex);
   const activeDay = scheduleDays[activeDayIndex];
-  const currentVisibleDays = useMemo(() => visibleDays(activeDayIndex), [activeDayIndex]);
+  const currentVisibleDays = useMemo(
+    () => visibleDays(scheduleDays, activeDayIndex),
+    [activeDayIndex, scheduleDays]
+  );
+
+  if (!activeDay) {
+    return <p className="py-8 text-center text-sm text-paper/55">暂时没有更新，休息一下吧</p>;
+  }
 
   function switchDay(nextIndex: number) {
     setActiveDayIndex(Math.max(0, Math.min(scheduleDays.length - 1, nextIndex)));

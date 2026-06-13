@@ -10,7 +10,17 @@ function getCircularIndex(index: number, length: number): number {
   return (index + length) % length;
 }
 
-export function HeadlineCarousel({ items }: { items: NewsItem[] }) {
+const slideSurfaceClass =
+  "absolute inset-x-0 top-0 z-10 block h-[262px] overflow-hidden rounded-[18px] bg-[#0B3D9F] shadow-score";
+
+export function HeadlineCarousel({
+  items,
+  navigateToHeadlines = true
+}: {
+  items: NewsItem[];
+  /** 首页轮播点击进入头条列表；头条页内仅展示，不重复跳转 */
+  navigateToHeadlines?: boolean;
+}) {
   const slides = useMemo(() => {
     if (items.length > 0) {
       return items;
@@ -37,6 +47,21 @@ export function HeadlineCarousel({ items }: { items: NewsItem[] }) {
   }
 
   const active = slides[activeIndex];
+  const slideContent = (
+    <>
+      <Image alt={active.title} className="object-cover" fill priority sizes="360px" src={active.image} />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/82 via-transparent to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-4">
+        <p className="mb-2 inline-flex rounded-full bg-alert px-3 py-1 text-xs font-black text-paper">
+          {active.eyebrow}
+        </p>
+        <h2 className="line-clamp-2 font-serifcn text-lg font-black leading-snug text-paper">
+          {active.title}
+        </h2>
+      </div>
+    </>
+  );
+
   return (
     <div className="relative h-[292px] overflow-hidden">
       <button
@@ -56,21 +81,13 @@ export function HeadlineCarousel({ items }: { items: NewsItem[] }) {
         <ChevronRight aria-hidden className="h-5 w-5" />
       </button>
 
-      <Link
-        className="absolute inset-x-0 top-0 z-10 block h-[262px] overflow-hidden rounded-[18px] bg-ink shadow-score"
-        href={`/${active.section}/${active.slug}`}
-      >
-        <Image alt={active.title} className="object-cover" fill priority sizes="360px" src={active.image} />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/82 via-transparent to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-4">
-          <p className="mb-2 inline-flex rounded-full bg-alert px-3 py-1 text-xs font-black text-paper">
-            {active.eyebrow}
-          </p>
-          <h1 className="line-clamp-2 font-serifcn text-lg font-black leading-snug text-paper">
-            {active.title}
-          </h1>
-        </div>
-      </Link>
+      {navigateToHeadlines ? (
+        <Link aria-label="进入头条" className={slideSurfaceClass} href="/headlines">
+          {slideContent}
+        </Link>
+      ) : (
+        <div className={slideSurfaceClass}>{slideContent}</div>
+      )}
 
       <div className="absolute inset-x-0 bottom-4 z-20 flex justify-center gap-1.5">
         {slides.map((slide, index) => (

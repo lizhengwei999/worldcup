@@ -1,8 +1,4 @@
-import {
-  scheduleDays,
-  type ScheduleDay,
-  type ScheduleMatch
-} from "@/lib/schedule-data";
+import type { ScheduleDay, ScheduleMatch } from "@/lib/schedule-data";
 
 export const SCHEDULE_ALL_TIME = "all";
 export const SCHEDULE_ALL_COUNTRIES = "all";
@@ -12,10 +8,12 @@ export function matchIncludesTeam(match: ScheduleMatch, teamName: string) {
 }
 
 export function filterScheduleDays({
+  days: sourceDays,
   timeFilter,
   countryFilter,
   visibleFromIndex
 }: {
+  days: ScheduleDay[];
   timeFilter: string;
   countryFilter: string;
   visibleFromIndex: number;
@@ -26,11 +24,11 @@ export function filterScheduleDays({
   let days: ScheduleDay[];
 
   if (timeActive) {
-    days = scheduleDays.filter((day) => day.id === timeFilter);
+    days = sourceDays.filter((day) => day.id === timeFilter);
   } else if (countryActive) {
-    days = scheduleDays;
+    days = sourceDays;
   } else {
-    days = scheduleDays.slice(visibleFromIndex);
+    days = sourceDays.slice(visibleFromIndex);
   }
 
   if (countryActive) {

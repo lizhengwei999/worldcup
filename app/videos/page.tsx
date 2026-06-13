@@ -2,10 +2,12 @@ import { Clapperboard } from "lucide-react";
 import { HomeModule } from "@/components/home-module";
 import { VideoBoard } from "@/components/video-board";
 import { pageHeroClass } from "@/lib/page-theme";
+import { getVideoSections } from "@/lib/video-service";
 import { getSection } from "@/lib/worldcup-data";
 
-export default function VideosPage() {
+export default async function VideosPage() {
   const section = getSection("videos");
+  const videoSections = await getVideoSections();
 
   return (
     <main className="min-h-dvh">
@@ -22,16 +24,8 @@ export default function VideosPage() {
         </div>
       </section>
 
-      <HomeModule className="mt-4">
-        <div className="mb-3 flex items-center justify-center px-5 text-paper">
-          <span className="inline-flex items-center gap-1.5 text-[17px] font-bold tracking-[0.04em]">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-paper text-[#0B55D9]">
-              <Clapperboard aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
-            </span>
-            {section.title}
-          </span>
-        </div>
-        <VideoBoard />
+      <HomeModule className="mt-4 pb-3">
+        <VideoBoard sections={videoSections} variant="sections" />
       </HomeModule>
     </main>
   );

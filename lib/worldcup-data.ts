@@ -22,6 +22,9 @@ export type NewsItem = {
   image: string;
   tags: string[];
   body: string[];
+  contentType?: "article" | "video" | "live";
+  externalUrl?: string | null;
+  videoUrl?: string | null;
 };
 
 export type MatchItem = {
@@ -75,12 +78,12 @@ export const sections: SectionDefinition[] = [
     icon: Newspaper
   },
   {
-    key: "videos",
-    href: "/videos",
-    title: "精彩视频",
-    shortTitle: "视频",
-    description: "用短视频入口承接集锦、发布会、训练和球星花絮。",
-    icon: Clapperboard
+    key: "standings",
+    href: "/standings",
+    title: "积分排名",
+    shortTitle: "积分",
+    description: "展示小组积分、净胜球与晋级线索，支持后续实时同步。",
+    icon: Table2
   },
   {
     key: "schedule",
@@ -91,12 +94,12 @@ export const sections: SectionDefinition[] = [
     icon: CalendarDays
   },
   {
-    key: "standings",
-    href: "/standings",
-    title: "积分排名",
-    shortTitle: "积分",
-    description: "展示小组积分、净胜球与晋级线索，支持后续实时同步。",
-    icon: Table2
+    key: "videos",
+    href: "/videos",
+    title: "精彩视频",
+    shortTitle: "视频",
+    description: "用短视频入口承接集锦、发布会、训练和球星花絮。",
+    icon: Clapperboard
   }
 ];
 

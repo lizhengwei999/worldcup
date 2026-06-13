@@ -1,4 +1,4 @@
-export const TAB_BLUE_ROUTE_PREFIXES = ["/videos", "/schedule", "/standings"] as const;
+export const TAB_BLUE_ROUTE_PREFIXES = ["/headlines", "/videos", "/schedule", "/standings"] as const;
 
 export function isTabBlueRoute(pathname: string): boolean {
   if (pathname === "/") {

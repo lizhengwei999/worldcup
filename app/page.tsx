@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -13,7 +12,10 @@ import { ScheduleBoard } from "@/components/schedule-board";
 import { StandingsBoard } from "@/components/standings-board";
 import { VideoBoard } from "@/components/video-board";
 import { WorldCupHeader } from "@/components/worldcup-header";
-import { headlineItems, standingGroups } from "@/lib/worldcup-data";
+import { getNewsItems } from "@/lib/content-service";
+import { getScheduleDays } from "@/lib/schedule-service";
+import { getStandingGroups } from "@/lib/standings-service";
+import { getVideoSections } from "@/lib/video-service";
 
 function ModuleTitle({ title, icon: Icon }: { title: string; icon: LucideIcon }) {
   return (
@@ -40,8 +42,13 @@ function MoreLink({ href }: { href: string }) {
   );
 }
 
-export default function HomePage() {
-  const carouselItems = headlineItems.slice(0, 6);
+export default async function HomePage() {
+  const [standingGroups, carouselItems, scheduleDays, videoSections] = await Promise.all([
+    getStandingGroups(),
+    getNewsItems("headlines", 6),
+    getScheduleDays(),
+    getVideoSections(6)
+  ]);
 
   return (
     <main className="min-h-dvh">
@@ -62,13 +69,13 @@ export default function HomePage() {
 
         <HomeModule>
           <ModuleTitle icon={CalendarDays} title="全部赛程" />
-          <ScheduleBoard />
+          <ScheduleBoard scheduleDays={scheduleDays} />
           <MoreLink href="/schedule" />
         </HomeModule>
 
         <HomeModule>
           <ModuleTitle icon={ListVideo} title="精彩视频" />
-          <VideoBoard />
+          <VideoBoard sections={videoSections} />
           <MoreLink href="/videos" />
         </HomeModule>
       </div>

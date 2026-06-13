@@ -3,7 +3,7 @@ import { pageHeroClass } from "@/lib/page-theme";
 import { Trophy } from "lucide-react";
 import type { RankingPanel } from "./standings-stage";
 import { StandingsStage } from "./standings-stage";
-import { standingGroups } from "@/lib/worldcup-data";
+import { getStandingGroups } from "@/lib/standings-service";
 
 type StandingsPageProps = {
   searchParams?: Promise<{
@@ -15,6 +15,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
   const params = await searchParams;
   const rankChildTab = Array.isArray(params?.rankChildTab) ? params?.rankChildTab[0] : params?.rankChildTab;
   const initialPanel: RankingPanel = rankChildTab === "teamRank" ? "teamRank" : "matchUp";
+  const standingGroups = await getStandingGroups();
 
   return (
     <main className="min-h-dvh">
