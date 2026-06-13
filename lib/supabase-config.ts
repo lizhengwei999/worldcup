@@ -1,0 +1,7 @@
+export const WORLDCUP_SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://kficfmnezqldfyxdnhvz.supabase.co";
+
+export const WORLDCUP_SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmaWNmbW5lenFsZGZ5eGRuaHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTU0MDQsImV4cCI6MjA5Njc3MTQwNH0.ScHIqK1wc4jputUMO7YsNZnXLAebj8uCkvfJt_lrFC4";

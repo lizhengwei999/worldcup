@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { WORLDCUP_SUPABASE_ANON_KEY, WORLDCUP_SUPABASE_URL } from "@/lib/supabase-config";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -11,11 +12,10 @@ function cleanEnvValue(value: string | undefined) {
 }
 
 export function getServerSupabaseClient(): SupabaseClient | null {
-  const url = cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const url = cleanEnvValue(WORLDCUP_SUPABASE_URL);
   const key =
     cleanEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY) ??
-    cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ??
-    cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+    cleanEnvValue(WORLDCUP_SUPABASE_ANON_KEY);
 
   if (!url || !key) {
     return null;
