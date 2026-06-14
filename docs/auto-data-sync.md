@@ -79,11 +79,22 @@ npm run db:seed:baidu-all
 
 | Secret | 说明 |
 |--------|------|
-| `SUPABASE_DB_URL` | Supabase Postgres 连接串（推荐） |
+| `SUPABASE_DB_URL` | Supabase Postgres 连接串（**必填**，必须以 `postgresql://` 开头） |
 | `DATABASE_URL` | 同上，备用 |
-| `MIGU_VIDEO_URL` | 可选，覆盖咪咕专题页 |
-| `MIGU_PLAYER_RANK_SEASON_ID` | 可选 |
-| `MIGU_PLAYER_RANK_API_BASE` | 可选 |
+
+**正确示例：**
+
+```text
+postgresql://postgres.xxxxxxxxxxxx:你的密码@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
+```
+
+**不要填：**
+
+- `https://xxxx.supabase.co`（项目 URL）
+- `eyJhbGciOi...`（anon key）
+- 带引号的值（`"postgresql://..."`）
+
+本地或 CI 可先验证：`npm run db:check:secret`
 
 `GITHUB_TOKEN` 默认具备 `contents: write`，用于推送 `sync-last-run.json`。
 

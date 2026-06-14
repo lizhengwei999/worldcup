@@ -17,7 +17,8 @@
     "db:seed:migu-videos": "node scripts/seed-migu-videos.mjs",
     "db:seed:migu-player-rankings": "node scripts/seed-migu-player-rankings.mjs",
     "db:seed:baidu-all": "node scripts/seed-baidu-all.mjs",
-    "db:sync:all": "node scripts/sync-all.mjs"
+    "db:sync:all": "node scripts/sync-all.mjs",
+    "db:check:secret": "node scripts/check-db-secret.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
