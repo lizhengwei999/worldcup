@@ -256,7 +256,17 @@ function extractVideosFromGroupState(groupsState, category) {
   const seenTitles = new Set();
   const videos = [];
   const components = [...(groupBody.components ?? [])]
-    .filter((component) => (component.data?.length ?? 0) > 0)
+    .filter((component) => {
+      if (component.compType === "LABEL" || component.compStyle?.startsWith("LABEL")) {
+        return false;
+      }
+
+      if (component.name === "标题" || component.name?.includes("副本-标题")) {
+        return false;
+      }
+
+      return (component.data?.length ?? 0) > 0;
+    })
     .sort((left, right) => Number(left.sortValue ?? 0) - Number(right.sortValue ?? 0));
 
   for (const component of components) {
@@ -697,11 +707,12 @@ async function seed() {
     }
 
     await client.query("commit");
-    const focusPreview = sections.find((section) => section.id === "focus")?.items.slice(0, 3) ?? [];
-    if (focusPreview.length > 0) {
-      console.log(
-        `Focus preview: ${focusPreview.map((item) => item.title).join(" | ")}`
-      );
+    for (const section of sections) {
+      const preview = section.items
+        .slice(0, 3)
+        .map((item) => item.title)
+        .join(" | ");
+      console.log(`${section.label} preview: ${preview}`);
     }
     console.log(
       `Seeded ${rows.length} Migu videos: ${sections.map((section) => `${section.label} ${section.items.length}`).join(", ")}.`

@@ -1,0 +1,37 @@
+---
+description: 咪咕精彩视频三栏目与数据库同步规则（聚焦世界杯 / 48队巡礼 / 星耀美加墨）
+globs:
+  - scripts/seed-migu-videos.mjs
+  - lib/video-service.ts
+  - components/video-board.tsx
+  - app/page.tsx
+  - app/videos/**
+alwaysApply: false
+---
+
+# 咪咕精彩视频同步记忆
+
+更新首页「精彩视频」或 `/videos` 时，数据来自咪咕专题页，不是百度。
+
+## 咪咕链接（固定）
+
+https://www.miguvideo.com/p/home/7a04ba680afd4b49a31913c5b36e4557
+
+## 三栏目对应（必须遵守）
+
+| 本站栏目 | DB `video_category` | 咪咕区块 |
+|---------|---------------------|---------|
+| 聚焦世界杯 | `focus` | 最新资讯 → group `世界杯最新资讯` |
+| 48队巡礼 | `teams` | 逐鹿美加墨·世界杯48队巡礼 → group `逐鹿美加墨` |
+| 星耀美加墨 | `stars` | 星耀美加墨·世界杯20大球星 → group `星耀美加墨` |
+
+## 入库
+
+- 表：`public.worldcup_items`，`section = 'videos'`
+- 命令：`npm run db:seed:migu-videos`
+- 脚本：`scripts/seed-migu-videos.mjs`
+- 排序：咪咕 `publishTime` → `published_at`，最新视频优先展示
+
+## 详细文档
+
+见 `docs/migu-video-sync.md`
