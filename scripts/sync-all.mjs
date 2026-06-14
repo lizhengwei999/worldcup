@@ -20,8 +20,15 @@ const steps = [
 ];
 
 const failures = [];
+let hadFailure = false;
 
 for (const step of steps) {
+  if (hadFailure) {
+    console.log(`\n>>> Skipping ${step} because a previous step failed`);
+    failures.push({ step, code: "skipped" });
+    continue;
+  }
+
   console.log(`\n>>> Running npm run ${step}`);
   const code = await new Promise((resolvePromise) => {
     const child = spawn("npm", ["run", step], {
@@ -37,6 +44,7 @@ for (const step of steps) {
   if (code !== 0) {
     console.error(`>>> ${step} failed with exit code ${code}`);
     failures.push({ step, code });
+    hadFailure = true;
   }
 }
 
