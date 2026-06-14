@@ -638,8 +638,8 @@ async function seed() {
   try {
     await client.query("begin");
     await client.query(schema);
-    await client.query("delete from public.worldcup_items where section = 'videos'");
 
+    let upserted = 0;
     for (const item of rows) {
       await client.query(
         `
@@ -704,7 +704,16 @@ async function seed() {
           item.body
         ]
       );
+      upserted += 1;
     }
+
+    const totals = await client.query(`
+      select video_category, count(*)::int as count
+      from public.worldcup_items
+      where section = 'videos'
+      group by video_category
+      order by video_category
+    `);
 
     await client.query("commit");
     for (const section of sections) {
@@ -714,8 +723,9 @@ async function seed() {
         .join(" | ");
       console.log(`${section.label} preview: ${preview}`);
     }
+    console.log(`Upserted ${upserted} Migu videos (existing records kept).`);
     console.log(
-      `Seeded ${rows.length} Migu videos: ${sections.map((section) => `${section.label} ${section.items.length}`).join(", ")}.`
+      `Database totals: ${totals.rows.map((row) => `${row.video_category} ${row.count}`).join(", ")}`
     );
   } catch (error) {
     await client.query("rollback");

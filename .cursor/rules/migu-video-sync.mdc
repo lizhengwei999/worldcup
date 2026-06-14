@@ -30,7 +30,9 @@ https://www.miguvideo.com/p/home/7a04ba680afd4b49a31913c5b36e4557
 - 表：`public.worldcup_items`，`section = 'videos'`
 - 命令：`npm run db:seed:migu-videos`
 - 脚本：`scripts/seed-migu-videos.mjs`
+- 策略：增量 upsert，**不删除**历史 `section=videos` 记录
 - 排序：咪咕 `publishTime` → `published_at`，最新视频优先展示
+- `/videos` 每栏目分页，每页 12 条
 
 ## 详细文档
 

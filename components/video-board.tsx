@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { ModuleNavShell, moduleTabClass } from "@/components/module-nav";
 import { useState } from "react";
+
+export const VIDEOS_PAGE_SIZE = 12;
 
 export type VideoItem = {
   duration: string;
@@ -192,9 +194,75 @@ function VideoCard({ item }: { item: VideoItem }) {
   );
 }
 
-function VideoSectionTitle({ label }: { label: string }) {
+function VideoSectionTitle({
+  label,
+  onPrev,
+  onNext,
+  page,
+  totalPages
+}: {
+  label: string;
+  onPrev?: () => void;
+  onNext?: () => void;
+  page?: number;
+  totalPages?: number;
+}) {
+  const showPagination = totalPages !== undefined && totalPages > 1 && page !== undefined;
+
   return (
-    <h2 className="px-5 text-[17px] font-bold tracking-[0.04em] text-[#BDFD38]">{label}</h2>
+    <div className="flex items-center justify-between gap-3 px-5">
+      <h2 className="text-[17px] font-bold tracking-[0.04em] text-[#BDFD38]">{label}</h2>
+      {showPagination ? (
+        <div className="flex items-center gap-1 text-sm font-medium text-paper/80">
+          <button
+            aria-label="上一页"
+            className="flex h-7 w-7 items-center justify-center rounded-md transition enabled:hover:bg-paper/10 disabled:opacity-35"
+            disabled={page <= 1}
+            onClick={onPrev}
+            type="button"
+          >
+            <ChevronLeft aria-hidden className="h-4 w-4" />
+          </button>
+          <span className="min-w-[2.5rem] text-center tabular-nums">{page}/{totalPages}</span>
+          <button
+            aria-label="下一页"
+            className="flex h-7 w-7 items-center justify-center rounded-md transition enabled:hover:bg-paper/10 disabled:opacity-35"
+            disabled={page >= totalPages}
+            onClick={onNext}
+            type="button"
+          >
+            <ChevronRight aria-hidden className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PaginatedVideoSection({ section }: { section: VideoSection }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(section.items.length / VIDEOS_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = section.items.slice(
+    (safePage - 1) * VIDEOS_PAGE_SIZE,
+    safePage * VIDEOS_PAGE_SIZE
+  );
+
+  return (
+    <section>
+      <VideoSectionTitle
+        label={section.label}
+        onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
+        onPrev={() => setPage((current) => Math.max(1, current - 1))}
+        page={safePage}
+        totalPages={totalPages}
+      />
+      <div className="mx-5 mt-3 grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-3">
+        {pageItems.map((item) => (
+          <VideoCard item={item} key={item.id} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -212,17 +280,12 @@ export function VideoBoard({
     return (
       <div className="space-y-6 pb-2">
         {sections.map((section, sectionIndex) => (
-          <section key={section.id}>
-            <VideoSectionTitle label={section.label} />
-            <div className="mx-5 mt-3 grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-3">
-              {section.items.map((item) => (
-                <VideoCard item={item} key={item.id} />
-              ))}
-            </div>
+          <div key={section.id}>
+            <PaginatedVideoSection section={section} />
             {sectionIndex < sections.length - 1 ? (
               <div className="mx-5 mt-6 border-t border-paper/10" />
             ) : null}
-          </section>
+          </div>
         ))}
       </div>
     );

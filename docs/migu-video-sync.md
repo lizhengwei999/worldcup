@@ -24,7 +24,7 @@
 - **排序**：`published_at` 降序（最新在前），其次 `display_order`
 - **展示**：
   - 首页：每栏目最多 6 条（`getVideoSections(6)`）
-  - `/videos`：每栏目全部条目
+  - `/videos`：每栏目全部条目，**每页 12 条**分页展示
 
 ## 更新命令
 
@@ -38,7 +38,7 @@ npm run db:seed:migu-videos
 2. 解析 `window.__INITIAL_GROUPS_STATE__`
 3. 按上表三个 group 提取视频（封面、时长、标题、详情链接）
 4. 使用咪咕 `publishTime` 作为 `published_at`
-5. **删除** `section = 'videos'` 的旧数据后全量写入
+5. **增量 upsert**：保留历史视频，新视频写入，同标题则更新元数据（不整表删除）
 
 ## 采集脚本
 
