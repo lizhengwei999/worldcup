@@ -59,7 +59,7 @@ function cleanText(value = "") {
     .trim();
 }
 
-function absoluteUrl(value, baseUrl = miguVideoUrl) {
+function absoluteUrl(value, baseUrl = getMiguVideoUrl()) {
   if (!value) {
     return "";
   }
@@ -356,7 +356,7 @@ function extractCardsFromHtml(block, categoryId) {
       duration,
       imageUrl,
       title,
-      url: absoluteUrl(href || miguVideoUrl)
+      url: absoluteUrl(href || getMiguVideoUrl())
     };
 
     if (isValidVideo(item)) {
@@ -414,7 +414,7 @@ function findUrlField(value) {
   if (typeof value?.cid === "string") {
     return absoluteUrl(`/p/detail/${value.cid}`);
   }
-  return miguVideoUrl;
+  return getMiguVideoUrl();
 }
 
 function collectJsonVideos(value, categoryId, push) {
