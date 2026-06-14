@@ -1,0 +1,82 @@
+name: Scheduled Data Sync
+
+# 北京时间 00:00、01:00、03:00、04:00、04:30、05:00、06:00、07:00、07:30、
+# 08:00、08:30、09:00、09:30、10:00、11:00、12:00、13:00、14:00
+# GitHub Actions cron 使用 UTC，以下为对应 UTC 时刻。
+on:
+  schedule:
+    - cron: "0 16 * * *"
+    - cron: "0 17 * * *"
+    - cron: "0 19 * * *"
+    - cron: "0 20 * * *"
+    - cron: "30 20 * * *"
+    - cron: "0 21 * * *"
+    - cron: "0 22 * * *"
+    - cron: "0 23 * * *"
+    - cron: "30 23 * * *"
+    - cron: "0 0 * * *"
+    - cron: "30 0 * * *"
+    - cron: "0 1 * * *"
+    - cron: "30 1 * * *"
+    - cron: "0 2 * * *"
+    - cron: "0 3 * * *"
+    - cron: "0 4 * * *"
+    - cron: "0 5 * * *"
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: worldcup-data-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync all data to Supabase
+        run: npm run db:sync:all
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MIGU_VIDEO_URL: ${{ secrets.MIGU_VIDEO_URL }}
+          MIGU_PLAYER_RANK_SEASON_ID: ${{ secrets.MIGU_PLAYER_RANK_SEASON_ID }}
+          MIGU_PLAYER_RANK_API_BASE: ${{ secrets.MIGU_PLAYER_RANK_API_BASE }}
+
+      - name: Record sync and push to GitHub
+        run: |
+          mkdir -p data
+          BEIJING_TIME=$(TZ=Asia/Shanghai date +%Y-%m-%dT%H:%M:%S%z)
+          UTC_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cat > data/sync-last-run.json <<EOF
+          {
+            "beijingTime": "${BEIJING_TIME}",
+            "utcTime": "${UTC_TIME}",
+            "trigger": "github-actions",
+            "workflow": "data-sync.yml"
+          }
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/sync-last-run.json
+          if git diff --staged --quiet; then
+            echo "No file changes to commit."
+          else
+            git commit -m "chore: auto sync data ${BEIJING_TIME}"
+          fi
+          git push

@@ -1,0 +1,48 @@
+---
+description: 全站定时数据同步与 GitHub 自动推送（已授权，无需确认）
+globs:
+  - scripts/sync-all.mjs
+  - scripts/seed-*.mjs
+  - .github/workflows/data-sync.yml
+  - data/sync-last-run.json
+alwaysApply: true
+---
+
+# 全站自动数据同步记忆
+
+## 授权（用户已明确授权，执行时勿再询问）
+
+- 按固定时间表自动全站更新 Supabase
+- 根据记忆文件 / `docs/auto-data-sync.md` 中的网址采集
+- 更新完成后自动 `git commit` + `git push` 到 GitHub `main`
+- 本地或 CI 跑同步：**不需要用户确认**
+
+## 北京时间每日 18 个时刻
+
+`00:00` `01:00` `03:00` `04:00` `04:30` `05:00` `06:00` `07:00` `07:30` `08:00` `08:30` `09:00` `09:30` `10:00` `11:00` `12:00` `13:00` `14:00`
+
+## 一键全站同步
+
+```powershell
+npm run db:sync:all
+```
+
+脚本：`scripts/sync-all.mjs` → 依次 standings / schedule / headlines / match-details / schedule-previews / migu-videos / migu-player-rankings
+
+## 采集网址速查
+
+- **积分**：`tiyu.baidu.com` 世界杯排名
+- **赛程**：`tiyu.baidu.com` 世界杯赛程
+- **头条**：百度搜索「世界杯」
+- **战报**：百度体育各场赛况页
+- **赛前预览**：百度搜索主客队
+- **视频**：`miguvideo.com/p/home/7a04ba680afd4b49a31913c5b36e4557`
+- **球员排名**：咪咕 `figures/ranking/110000005666/{statType}`
+
+完整表见 `docs/auto-data-sync.md`。
+
+## CI
+
+- `.github/workflows/data-sync.yml` — 18 次 cron + `workflow_dispatch`
+- Secrets：`SUPABASE_DB_URL` 或 `DATABASE_URL`
+- 推送记录：`data/sync-last-run.json`

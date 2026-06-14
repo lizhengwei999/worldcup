@@ -1,0 +1,6 @@
+{
+  "beijingTime": "manual",
+  "utcTime": "manual",
+  "trigger": "initial",
+  "workflow": "data-sync.yml"
+}
