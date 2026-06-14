@@ -3,7 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Shield } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { ScheduleMatch, TeamRef } from "@/lib/schedule-data";
+import { MIGU_LIVE_HOME_URL, resolveScheduleMatchDisplay } from "@/lib/schedule-match-display";
 import { standingRowSurface } from "@/lib/standing-ui";
 
 /** 时间/轮次列需容纳「小组赛J组第3轮」等文案，避免队旗列重叠 */
@@ -24,25 +26,36 @@ function TeamFlag({ team }: { team: TeamRef }) {
 
 export function ScheduleMatchRow({
   className = "",
+  dayId,
   href,
   index,
   match
 }: {
   className?: string;
+  dayId: string;
   href: string;
   index?: number;
   match: ScheduleMatch;
 }) {
+  const [now, setNow] = useState(() => new Date());
   const rowSurface = index !== undefined ? standingRowSurface(index) : "";
+  const display = useMemo(() => resolveScheduleMatchDisplay(match, dayId, now), [dayId, match, now]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const homeScore = match.homeScore && match.homeScore !== "-" ? match.homeScore : "—";
   const awayScore = match.awayScore && match.awayScore !== "-" ? match.awayScore : "—";
-  const statusLabel = match.statusLabel ?? "未开赛";
-  const liveLabel = match.liveLabel ?? "动画直播";
+  const rowHref = display.isLive ? MIGU_LIVE_HOME_URL : href;
 
   return (
     <Link
       className={`${scheduleMatchGridClass} text-paper transition hover:bg-paper/12 ${rowSurface} ${className}`.trim()}
-      href={href}
+      href={rowHref}
+      rel={display.isLive ? "noopener noreferrer" : undefined}
+      target={display.isLive ? "_blank" : undefined}
     >
       <div className="w-[6.75rem] shrink-0">
         <p className="font-display text-lg font-bold leading-none tabular-nums tracking-wide">{match.time}</p>
@@ -66,8 +79,8 @@ export function ScheduleMatchRow({
       </div>
 
       <div className="space-y-1.5 text-right text-sm font-medium leading-5 text-paper/85">
-        <p>{statusLabel}</p>
-        <p className="text-xs text-paper/78">{liveLabel}</p>
+        <p>{display.statusLabel}</p>
+        <p className="text-xs text-paper/78">{display.liveLabel}</p>
       </div>
     </Link>
   );

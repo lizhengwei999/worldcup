@@ -1,7 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { moduleSurfaceClass } from "@/lib/page-theme";
+import { MIGU_VIDEO_LABEL, resolveScheduleDetailDisplay } from "@/lib/schedule-match-display";
 import type { ScheduleMatchDetail } from "@/lib/schedule-service";
 
 function TeamLogo({ logoUrl, name }: { logoUrl: string | null; name: string }) {
@@ -115,10 +119,18 @@ const incidentLegend = [
 ];
 
 export function ScheduleDetailView({ detail }: { detail: ScheduleMatchDetail }) {
+  const [now, setNow] = useState(() => new Date());
+  const display = useMemo(() => resolveScheduleDetailDisplay(detail, now), [detail, now]);
   const importantIncidents = detail.incidents.filter((item) =>
     /进球|红牌|黄牌|换人|结束/.test(item.iconType)
   );
   const visibleIncidents = (importantIncidents.length > 0 ? importantIncidents : detail.incidents).slice(0, 28);
+  const reportProvider = detail.reportProvider?.replace(/雷速[^）)]*（动画）?|动画直播/g, MIGU_VIDEO_LABEL) ?? MIGU_VIDEO_LABEL;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <main className="min-h-dvh pb-2 text-paper">
@@ -151,7 +163,7 @@ export function ScheduleDetailView({ detail }: { detail: ScheduleMatchDetail }) 
                 {scoreText(detail.awayScore)}
               </p>
               <p className="mt-2 rounded-full bg-paper/12 px-3 py-1 text-xs font-bold text-[#BDFD38]">
-                {detail.statusText}
+                {display.statusLabel}
               </p>
             </div>
 
@@ -172,6 +184,34 @@ export function ScheduleDetailView({ detail }: { detail: ScheduleMatchDetail }) 
             </div>
           ) : null}
         </section>
+
+        {display.isFinished && detail.reportUrl ? (
+          <section className={`rounded-[14px] px-4 py-4 ${moduleSurfaceClass}`}>
+            <h2 className="text-[17px] font-black tracking-wide text-[#BDFD38]">比赛战报</h2>
+            <Link
+              className="mt-3 flex gap-3 rounded-[12px] bg-paper/[0.05] p-3 ring-1 ring-inset ring-paper/10 transition hover:bg-paper/[0.08]"
+              href={detail.reportUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {detail.reportImageUrl ? (
+                <span className="relative h-20 w-28 shrink-0 overflow-hidden rounded-[8px] bg-paper/10">
+                  <Image
+                    alt={detail.reportTitle ?? "比赛战报"}
+                    className="object-cover"
+                    fill
+                    sizes="112px"
+                    src={detail.reportImageUrl}
+                  />
+                </span>
+              ) : null}
+              <div className="min-w-0">
+                <p className="text-sm font-black leading-6 text-paper">{detail.reportTitle ?? "比赛战报"}</p>
+                <p className="mt-1 text-xs font-medium text-paper/62">{reportProvider}</p>
+              </div>
+            </Link>
+          </section>
+        ) : null}
 
         <section className={`rounded-[14px] px-4 py-5 ${moduleSurfaceClass}`}>
           <h2 className="text-[17px] font-black tracking-wide text-[#BDFD38]">赛事事件</h2>

@@ -54,6 +54,44 @@ function formatStatValue(value: string, showPercent: boolean) {
   return `${numeric}%`;
 }
 
+async function loadPlayerRankRowsFromSupabase() {
+  const supabase = getServerSupabaseClient();
+  if (!supabase) {
+    return [];
+  }
+
+  const pageSize = 1000;
+  const allRows: PlayerRankRow[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("worldcup_player_rankings")
+      .select(
+        "stat_type, stat_key, stat_label, column_label, show_percent, category_order, rank, figure_id, player_name, player_image_url, team_name, team_logo_url, matches_played, stat_value"
+      )
+      .order("category_order", { ascending: true })
+      .order("rank", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.warn("Supabase REST query failed for player rankings.", error);
+      return [];
+    }
+
+    if (!data?.length) {
+      break;
+    }
+
+    allRows.push(...(data as PlayerRankRow[]));
+
+    if (data.length < pageSize) {
+      break;
+    }
+  }
+
+  return allRows;
+}
+
 function rowsToCategories(rows: PlayerRankRow[]): PlayerRankCategory[] {
   const grouped = new Map<number, PlayerRankRow[]>();
 
@@ -105,23 +143,9 @@ export async function getPlayerRankCategories(): Promise<PlayerRankCategory[]> {
 
   try {
     return await getCachedServerData("player-rankings:categories", async () => {
-      const supabase = getServerSupabaseClient();
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("worldcup_player_rankings")
-          .select(
-            "stat_type, stat_key, stat_label, column_label, show_percent, category_order, rank, figure_id, player_name, player_image_url, team_name, team_logo_url, matches_played, stat_value"
-          )
-          .order("category_order", { ascending: true })
-          .order("rank", { ascending: true });
-
-        if (!error && data?.length) {
-          return rowsToCategories(data as PlayerRankRow[]);
-        }
-
-        if (error) {
-          console.warn("Supabase REST query failed for player rankings; trying Postgres.", error);
-        }
+      const supabaseRows = await loadPlayerRankRowsFromSupabase();
+      if (supabaseRows.length > 0) {
+        return rowsToCategories(supabaseRows);
       }
 
       const pool = getPgPool();

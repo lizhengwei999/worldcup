@@ -1,9 +1,15 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, CalendarDays } from "lucide-react";
 import { NewsDetailView } from "@/components/news-detail-view";
 import { ScheduleDetailView } from "@/components/schedule-detail-view";
+import { SchedulePreviewView } from "@/components/schedule-preview-view";
 import { getNewsItemBySlug, getRelatedNewsItems } from "@/lib/content-service";
+import { MIGU_LIVE_HOME_URL, resolveScheduleMatchDisplay } from "@/lib/schedule-match-display";
+import {
+  getScheduleMatchBySlug,
+  getScheduleMatchPreviewBySlug
+} from "@/lib/schedule-preview-service";
 import { getScheduleMatchDetailBySlug } from "@/lib/schedule-service";
 import { getStandingItemBySlug } from "@/lib/standings-service";
 import {
@@ -41,17 +47,62 @@ export function generateStaticParams() {
 
 export default async function DetailPage({ params }: DetailPageProps) {
   const { section, slug } = await params;
+
+  if (section === "schedule") {
+    const matchEntry = await getScheduleMatchBySlug(slug);
+    const scheduleDetail = await getScheduleMatchDetailBySlug(slug);
+
+    if (matchEntry) {
+      const display = resolveScheduleMatchDisplay(matchEntry.match, matchEntry.dayId);
+
+      if (display.isLive) {
+        redirect(MIGU_LIVE_HOME_URL);
+      }
+
+      if (display.isFinished && scheduleDetail) {
+        return <ScheduleDetailView detail={scheduleDetail} />;
+      }
+
+      if (display.isUpcoming) {
+        const preview = await getScheduleMatchPreviewBySlug(slug);
+        if (preview) {
+          return <SchedulePreviewView preview={preview} />;
+        }
+
+        return (
+          <SchedulePreviewView
+            preview={{
+              awayIntro: [],
+              awayLogoUrl: matchEntry.match.away.flag ?? null,
+              awayName: matchEntry.match.away.name,
+              baiduSearchUrl: `https://www.baidu.com/s?ie=utf-8&wd=${encodeURIComponent(
+                `${matchEntry.match.home.name} ${matchEntry.match.away.name} 世界杯`
+              )}`,
+              homeIntro: [],
+              homeLogoUrl: matchEntry.match.home.flag ?? null,
+              homeName: matchEntry.match.home.name,
+              kickLabel: `${matchEntry.dayId} ${matchEntry.match.time}`,
+              matchId: matchEntry.match.id,
+              matchStage: matchEntry.match.group,
+              slug,
+              summary: ""
+            }}
+          />
+        );
+      }
+    }
+
+    if (scheduleDetail) {
+      return <ScheduleDetailView detail={scheduleDetail} />;
+    }
+  }
+
   const isNewsSection = section === "headlines" || section === "videos";
-  const scheduleDetail = section === "schedule" ? await getScheduleMatchDetailBySlug(slug) : null;
   const item = isNewsSection
     ? await getNewsItemBySlug(section, slug)
     : section === "standings"
       ? await getStandingItemBySlug(slug)
       : getDetailItem(section, slug);
-
-  if (scheduleDetail) {
-    return <ScheduleDetailView detail={scheduleDetail} />;
-  }
 
   if (!item) {
     notFound();

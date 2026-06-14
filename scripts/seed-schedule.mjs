@@ -127,14 +127,10 @@ function absoluteSourceUrl(link) {
 
 function toLiveText(match) {
   if (match.matchStatusText === "已结束") {
-    return match.statusText || "比赛战报";
+    return "比赛战报";
   }
 
-  if (match.hasFlash || match.pcHasFlash || match.wiseHasFlash) {
-    return "动画直播";
-  }
-
-  return match.statusText || "动画直播";
+  return "咪咕视频";
 }
 
 function getScheduleDateIndex(html) {

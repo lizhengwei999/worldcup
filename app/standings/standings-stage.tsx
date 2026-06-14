@@ -6,6 +6,7 @@ import { ChevronRight, Info } from "lucide-react";
 import { useMemo, useState } from "react";
 import { KnockoutBracketView } from "@/components/knockout-bracket-view";
 import { PlayerRankingsBoard } from "@/components/player-rankings-board";
+import { StandingListPagination } from "@/components/standing-list-pagination";
 import { ModuleNavShell, moduleTabClass } from "@/components/module-nav";
 import type { PlayerRankCategory } from "@/lib/player-rankings-service";
 import type { KnockoutRoundId } from "@/lib/knockout-data";
@@ -111,7 +112,10 @@ function GroupStandings({ groups }: { groups: StandingGroup[] }) {
   );
 }
 
+const TEAM_RANK_PAGE_SIZE = 10;
+
 function TeamRankBoard({ groups }: { groups: StandingGroup[] }) {
+  const [page, setPage] = useState(1);
   const teams = useMemo(
     () =>
       groups
@@ -144,6 +148,13 @@ function TeamRankBoard({ groups }: { groups: StandingGroup[] }) {
         { goals: 0, matches: 0, teams: 0 }
       ),
     [teams]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(teams.length / TEAM_RANK_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageTeams = teams.slice(
+    (safePage - 1) * TEAM_RANK_PAGE_SIZE,
+    safePage * TEAM_RANK_PAGE_SIZE
   );
 
   return (
@@ -179,7 +190,7 @@ function TeamRankBoard({ groups }: { groups: StandingGroup[] }) {
       </div>
 
       <div className="space-y-0.5">
-        {teams.map((team, index) => (
+        {pageTeams.map((team, index) => (
           <Link
             className={`grid grid-cols-[38px_1fr_38px_54px_42px_42px] items-center px-3 py-2.5 text-sm font-medium transition hover:bg-paper/12 ${standingRowSurface(index)}`}
             href={`/standings/${team.slug}`}
@@ -208,6 +219,13 @@ function TeamRankBoard({ groups }: { groups: StandingGroup[] }) {
           </Link>
         ))}
       </div>
+
+      <StandingListPagination
+        page={safePage}
+        totalPages={totalPages}
+        onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
+        onPrev={() => setPage((current) => Math.max(1, current - 1))}
+      />
     </section>
   );
 }

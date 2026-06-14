@@ -103,75 +103,97 @@ function getDatabaseUrl() {
 
 async function fetchRanking(statType) {
   const url = `${apiBase}/${seasonId}/${statType}`;
-  const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-      referer: "https://www.miguvideo.com/",
-      "user-agent": "Mozilla/5.0"
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          accept: "application/json",
+          referer: "https://www.miguvideo.com/",
+          "user-agent": "Mozilla/5.0"
+        }
+      });
+
+      const text = await response.text();
+      if (!text.startsWith("{")) {
+        return [];
+      }
+
+      const payload = JSON.parse(text);
+      if (payload.code !== 200 && payload.code !== "200") {
+        return [];
+      }
+
+      return payload.data?.football ?? [];
+    } catch (error) {
+      if (attempt === 3) {
+        console.warn(`fetch failed for statType ${statType}:`, error.message);
+        return [];
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
     }
-  });
-
-  const text = await response.text();
-  if (!text.startsWith("{")) {
-    return [];
   }
 
-  const payload = JSON.parse(text);
-  if (payload.code !== 200 && payload.code !== "200") {
-    return [];
-  }
-
-  return payload.data?.football ?? [];
+  return [];
 }
 
-function toInt(value, fallback = 0) {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-async function applySchema(client) {
-  const schemaPath = resolve(rootDir, "supabase/player-rankings.sql");
-  const schemaSql = await readFile(schemaPath, "utf8");
-  await client.query(schemaSql);
-}
-
-async function main() {
-  await loadEnvFile();
-
-  const databaseUrl = getDatabaseUrl();
-  if (!databaseUrl) {
-    throw new Error("Missing SUPABASE_DB_URL or DATABASE_URL for seeding player rankings.");
-  }
-
-  const client = new Client({
+function createDbClient(databaseUrl) {
+  return new Client({
     connectionString: databaseUrl,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 60000,
+    keepAlive: true
   });
+}
 
+async function seedCategory(databaseUrl, category, players) {
+  const client = createDbClient(databaseUrl);
   await client.connect();
-  await applySchema(client);
 
-  let totalRows = 0;
+  let rowCount = 0;
 
-  for (const category of categories) {
-    if (!category.statType) {
-      console.log(`skip ${category.label}: no Migu stat type`);
-      continue;
-    }
-
-    const players = await fetchRanking(category.statType);
+  try {
     await client.query("delete from public.worldcup_player_rankings where stat_type = $1", [
       category.statType
     ]);
 
-    if (!players.length) {
-      console.log(`empty ${category.label} (${category.statType})`);
-      continue;
-    }
+    const batchSize = 80;
+    for (let index = 0; index < players.length; index += batchSize) {
+      const batch = players.slice(index, index + batchSize);
+      const values = [];
+      const params = [];
 
-    for (const player of players) {
-      const figureId = String(player.figureIdFK ?? player.figureId ?? "");
-      if (!figureId) {
+      batch.forEach((player) => {
+        const figureId = String(player.figureIdFK ?? player.figureId ?? "");
+        if (!figureId) {
+          return;
+        }
+
+        const offset = params.length;
+        values.push(
+          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14}, now())`
+        );
+        params.push(
+          category.statType,
+          toInt(player.rank, 0),
+          figureId,
+          player.figureName ?? player.figureNickName ?? "未知球员",
+          player.imgUrl ?? null,
+          player.teamName ?? player.teamShortName ?? "未知球队",
+          player.teamImgUrl ?? player.teamCountryLogo ?? null,
+          toInt(player.appearances, 0),
+          String(player.score ?? ""),
+          category.key,
+          category.label,
+          category.columnLabel,
+          category.showPercent,
+          category.categoryOrder
+        );
+        rowCount += 1;
+      });
+
+      if (!values.length) {
         continue;
       }
 
@@ -194,7 +216,7 @@ async function main() {
             category_order,
             updated_at
           )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now())
+          values ${values.join(", ")}
           on conflict (stat_type, figure_id) do update set
             rank = excluded.rank,
             player_name = excluded.player_name,
@@ -210,30 +232,65 @@ async function main() {
             category_order = excluded.category_order,
             updated_at = now()
         `,
-        [
-          category.statType,
-          toInt(player.rank, 0),
-          figureId,
-          player.figureName ?? player.figureNickName ?? "未知球员",
-          player.imgUrl ?? null,
-          player.teamName ?? player.teamShortName ?? "未知球队",
-          player.teamImgUrl ?? player.teamCountryLogo ?? null,
-          toInt(player.appearances, 0),
-          String(player.score ?? ""),
-          category.key,
-          category.label,
-          category.columnLabel,
-          category.showPercent,
-          category.categoryOrder
-        ]
+        params
       );
-      totalRows += 1;
+    }
+  } finally {
+    await client.end();
+  }
+
+  return rowCount;
+}
+
+function toInt(value, fallback = 0) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+async function applySchema(client) {
+  const schemaPath = resolve(rootDir, "supabase/player-rankings.sql");
+  const schemaSql = await readFile(schemaPath, "utf8");
+  await client.query(schemaSql);
+}
+
+async function main() {
+  await loadEnvFile();
+
+  const databaseUrl = getDatabaseUrl();
+  if (!databaseUrl) {
+    throw new Error("Missing SUPABASE_DB_URL or DATABASE_URL for seeding player rankings.");
+  }
+
+  const schemaClient = createDbClient(databaseUrl);
+  await schemaClient.connect();
+  await applySchema(schemaClient);
+  await schemaClient.end();
+
+  const payloads = [];
+
+  for (const category of categories) {
+    if (!category.statType) {
+      console.log(`skip ${category.label}: no Migu stat type`);
+      continue;
     }
 
+    const players = await fetchRanking(category.statType);
+    payloads.push({ category, players });
+  }
+
+  let totalRows = 0;
+
+  for (const { category, players } of payloads) {
+    if (!players.length) {
+      console.log(`empty ${category.label} (${category.statType})`);
+      continue;
+    }
+
+    const rowCount = await seedCategory(databaseUrl, category, players);
+    totalRows += rowCount;
     console.log(`seeded ${category.label}: ${players.length} players`);
   }
 
-  await client.end();
   console.log(`Done. Upserted ${totalRows} player ranking rows for season ${seasonId}.`);
 }
 

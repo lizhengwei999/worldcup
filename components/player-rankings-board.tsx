@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { PlayerRankCategory } from "@/lib/player-rankings-service";
+import { StandingListPagination } from "@/components/standing-list-pagination";
 import {
   standingCardClass,
   standingLabelClass,
@@ -26,14 +27,33 @@ const teamPlaceholder =
 const rowGridClass =
   "grid grid-cols-[28px_minmax(0,1.35fr)_minmax(0,1fr)_32px_36px] items-center gap-x-2";
 
+const PLAYER_RANK_PAGE_SIZE = 20;
+
 export function PlayerRankingsBoard({ categories }: { categories: PlayerRankCategory[] }) {
   const initialKey = categories.find((category) => category.players.length > 0)?.key ?? categories[0]?.key;
   const [activeKey, setActiveKey] = useState(initialKey);
+  const [page, setPage] = useState(1);
 
   const activeCategory = useMemo(
     () => categories.find((category) => category.key === activeKey) ?? categories[0],
     [activeKey, categories]
   );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil((activeCategory?.players.length ?? 0) / PLAYER_RANK_PAGE_SIZE)
+  );
+  const safePage = Math.min(page, totalPages);
+  const pagePlayers = useMemo(() => {
+    if (!activeCategory) {
+      return [];
+    }
+
+    return activeCategory.players.slice(
+      (safePage - 1) * PLAYER_RANK_PAGE_SIZE,
+      safePage * PLAYER_RANK_PAGE_SIZE
+    );
+  }, [activeCategory, safePage]);
 
   if (!activeCategory) {
     return null;
@@ -55,7 +75,10 @@ export function PlayerRankingsBoard({ categories }: { categories: PlayerRankCate
                     : "text-paper/72 hover:bg-paper/10 hover:text-paper"
                 }`}
                 key={category.key}
-                onClick={() => setActiveKey(category.key)}
+                onClick={() => {
+                  setActiveKey(category.key);
+                  setPage(1);
+                }}
                 type="button"
               >
                 {category.label}
@@ -76,12 +99,13 @@ export function PlayerRankingsBoard({ categories }: { categories: PlayerRankCate
           {activeCategory.players.length === 0 ? (
             <p className="py-10 text-center text-sm font-medium text-paper/55">暂无排名数据</p>
           ) : (
-            <div className="space-y-0.5">
-              {activeCategory.players.map((player, index) => (
-                <div
-                  className={`${rowGridClass} py-2 text-xs font-medium ${standingRowSurface(index)}`}
-                  key={player.figureId}
-                >
+            <>
+              <div className="space-y-0.5">
+                {pagePlayers.map((player, index) => (
+                  <div
+                    className={`${rowGridClass} py-2 text-xs font-medium ${standingRowSurface(index)}`}
+                    key={player.figureId}
+                  >
                   <span
                     className={`font-display text-center text-sm font-bold tabular-nums ${getRankColorClass(player.rank)}`}
                   >
@@ -119,7 +143,15 @@ export function PlayerRankingsBoard({ categories }: { categories: PlayerRankCate
                   </span>
                 </div>
               ))}
-            </div>
+              </div>
+
+              <StandingListPagination
+                page={safePage}
+                totalPages={totalPages}
+                onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
+                onPrev={() => setPage((current) => Math.max(1, current - 1))}
+              />
+            </>
           )}
         </div>
       </div>

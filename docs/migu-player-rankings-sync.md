@@ -102,3 +102,4 @@ npm run db:seed:migu-player-rankings
 - 不要与百度积分榜数据混淆：积分榜来自 `worldcup_standings`，球员排名来自咪咕
 - 服务端缓存约 5 分钟（`getCachedServerData`），更新后可等待或重启 dev server
 - 生产环境需已执行 `supabase/player-rankings.sql` 与 `supabase/rls-policies.sql`
+- Supabase REST 单次默认最多 1000 行；`player-rankings-service` 已分页拉取全部记录（约 2100+ 行），否则「扑救」及之后栏目会显示为空

@@ -12,6 +12,7 @@ begin
     'worldcup_schedule_days',
     'worldcup_schedule_matches',
     'worldcup_schedule_match_details',
+    'worldcup_schedule_match_previews',
     'worldcup_player_rankings'
   ]
   loop

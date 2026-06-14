@@ -314,8 +314,6 @@ export const scheduleDays: ScheduleDay[] = [
   ])
 ];
 
-export const schedulePageStartDayId = "06-15";
-
 export function getScheduleCountryNames(days = scheduleDays) {
   const names = new Set<string>();
   days.forEach((day) => {

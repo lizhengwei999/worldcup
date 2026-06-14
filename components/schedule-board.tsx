@@ -77,6 +77,7 @@ export function ScheduleBoard({ scheduleDays }: { scheduleDays: ScheduleDay[] })
       <div className="mx-5 mt-4 space-y-4">
         {activeDay.matches.map((match) => (
           <ScheduleMatchRow
+            dayId={activeDay.id}
             href={`/schedule/${match.slug}`}
             key={match.id}
             match={match}
