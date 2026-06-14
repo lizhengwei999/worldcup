@@ -1,73 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import process from "node:process";
 import pg from "pg";
+import { getDatabaseUrl, loadEnvFile } from "./db-url.mjs";
 
 const { Client } = pg;
 const rootDir = resolve(import.meta.dirname, "..");
-
-function cleanEnvValue(value) {
-  return value?.trim().replace(/^["']|["']$/g, "");
-}
-
-async function loadEnvFile() {
-  const envPath = resolve(rootDir, ".env");
-
-  try {
-    const envContent = await readFile(envPath, "utf8");
-
-    envContent.split(/\r?\n/).forEach((line) => {
-      const trimmed = line.trim();
-
-      if (!trimmed || trimmed.startsWith("#")) {
-        return;
-      }
-
-      const separatorIndex = trimmed.indexOf("=");
-      if (separatorIndex === -1) {
-        return;
-      }
-
-      const key = trimmed.slice(0, separatorIndex).trim();
-      const value = cleanEnvValue(trimmed.slice(separatorIndex + 1));
-
-      if (key && value && !process.env[key]) {
-        process.env[key] = value;
-      }
-    });
-  } catch {
-    // The script also supports regular shell environment variables.
-  }
-}
-
-function getDatabaseUrl() {
-  const databaseUrl = [
-    process.env.SUPABASE_DB_URL,
-    process.env.DATABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ]
-    .map(cleanEnvValue)
-    .find((value) => value?.startsWith("postgres"));
-
-  if (!databaseUrl) {
-    return databaseUrl;
-  }
-
-  const url = new URL(databaseUrl);
-  url.searchParams.delete("sslmode");
-  url.searchParams.delete("sslrootcert");
-
-  if (url.hostname.includes("pooler.supabase.com") && url.username.includes(".")) {
-    const projectRef = url.username.split(".")[1];
-    if (projectRef) {
-      url.hostname = `db.${projectRef}.supabase.co`;
-      url.username = "postgres";
-      url.port = "5432";
-    }
-  }
-
-  return url.toString();
-}
 
 function getSlug(groupCode, teamId) {
   return `${groupCode.toLowerCase().replace("组", "")}-${teamId.slice(0, 8)}`;

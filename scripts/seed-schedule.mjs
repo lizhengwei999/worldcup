@@ -1,69 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import process from "node:process";
 import { createHash } from "node:crypto";
 import pg from "pg";
+import { getDatabaseUrl, loadEnvFile } from "./db-url.mjs";
 
 const { Client } = pg;
 const rootDir = resolve(import.meta.dirname, "..");
 const defaultScheduleUrl =
   "https://tiyu.baidu.com/al/match?match=%E4%B8%96%E7%95%8C%E6%9D%AF&tab=%E8%B5%9B%E7%A8%8B&from=pc&date_time=2026-06-14";
-
-function cleanEnvValue(value) {
-  return value?.trim().replace(/^["']|["']$/g, "");
-}
-
-async function loadEnvFile() {
-  try {
-    const envContent = await readFile(resolve(rootDir, ".env"), "utf8");
-
-    envContent.split(/\r?\n/).forEach((line) => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) {
-        return;
-      }
-
-      const separatorIndex = trimmed.indexOf("=");
-      const key = trimmed.slice(0, separatorIndex).trim();
-      const value = cleanEnvValue(trimmed.slice(separatorIndex + 1));
-
-      if (key && value && !process.env[key]) {
-        process.env[key] = value;
-      }
-    });
-  } catch {
-    // The script also supports regular shell environment variables.
-  }
-}
-
-function getDatabaseUrl() {
-  const databaseUrl = [
-    process.env.SUPABASE_DB_URL,
-    process.env.DATABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ]
-    .map(cleanEnvValue)
-    .find((value) => value?.startsWith("postgres"));
-
-  if (!databaseUrl) {
-    return databaseUrl;
-  }
-
-  const url = new URL(databaseUrl);
-  url.searchParams.delete("sslmode");
-  url.searchParams.delete("sslrootcert");
-
-  if (url.hostname.includes("pooler.supabase.com") && url.username.includes(".")) {
-    const projectRef = url.username.split(".")[1];
-    if (projectRef) {
-      url.hostname = `db.${projectRef}.supabase.co`;
-      url.username = "postgres";
-      url.port = "5432";
-    }
-  }
-
-  return url.toString();
-}
 
 function getJsonArrayAfterMarker(html, marker) {
   const markerIndex = html.indexOf(marker);

@@ -58,6 +58,12 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+      - name: Test database connection
+        run: npm run db:test:connection
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Sync all data to Supabase
         run: npm run db:sync:all
         env:

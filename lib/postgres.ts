@@ -27,7 +27,7 @@ export function getDatabaseUrl() {
   url.searchParams.delete("sslmode");
   url.searchParams.delete("sslrootcert");
 
-  if (url.hostname.includes("pooler.supabase.com") && url.username.includes(".") && process.env.VERCEL !== "1") {
+  if (url.hostname.includes("pooler.supabase.com") && url.username.includes(".") && process.env.VERCEL !== "1" && process.env.GITHUB_ACTIONS !== "true" && process.env.CI !== "true") {
     const projectRef = url.username.split(".")[1];
     if (projectRef) {
       url.hostname = `db.${projectRef}.supabase.co`;

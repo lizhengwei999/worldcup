@@ -6,7 +6,7 @@ export function cleanEnvValue(value) {
   return value?.trim().replace(/^["']|["']$/g, "");
 }
 
-export async function loadEnvFile(rootDir) {
+export async function loadEnvFile(rootDir = resolve(import.meta.dirname, "..")) {
   try {
     const envContent = await readFile(resolve(rootDir, ".env"), "utf8");
 
@@ -29,15 +29,24 @@ export async function loadEnvFile(rootDir) {
   }
 }
 
-export function getDatabaseUrl() {
-  const databaseUrl = [
-    process.env.SUPABASE_DB_URL,
-    process.env.DATABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ]
-    .map(cleanEnvValue)
-    .find((value) => value?.startsWith("postgres"));
+export function shouldRewritePoolerToDirect() {
+  if (process.env.SUPABASE_USE_POOLER === "1") {
+    return false;
+  }
 
+  if (process.env.SUPABASE_FORCE_DIRECT === "1") {
+    return true;
+  }
+
+  // CI / serverless environments should keep the IPv4-friendly pooler URL.
+  if (process.env.GITHUB_ACTIONS === "true" || process.env.CI === "true" || process.env.VERCEL === "1") {
+    return false;
+  }
+
+  return true;
+}
+
+export function normalizeDatabaseUrl(databaseUrl) {
   if (!databaseUrl) {
     return databaseUrl;
   }
@@ -46,7 +55,11 @@ export function getDatabaseUrl() {
   url.searchParams.delete("sslmode");
   url.searchParams.delete("sslrootcert");
 
-  if (url.hostname.includes("pooler.supabase.com") && url.username.includes(".")) {
+  if (
+    shouldRewritePoolerToDirect() &&
+    url.hostname.includes("pooler.supabase.com") &&
+    url.username.includes(".")
+  ) {
     const projectRef = url.username.split(".")[1];
     if (projectRef) {
       url.hostname = `db.${projectRef}.supabase.co`;
@@ -56,4 +69,12 @@ export function getDatabaseUrl() {
   }
 
   return url.toString();
+}
+
+export function getDatabaseUrl() {
+  const databaseUrl = [process.env.SUPABASE_DB_URL, process.env.DATABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY]
+    .map(cleanEnvValue)
+    .find((value) => value?.startsWith("postgres"));
+
+  return normalizeDatabaseUrl(databaseUrl);
 }
