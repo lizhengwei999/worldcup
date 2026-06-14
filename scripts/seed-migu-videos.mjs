@@ -216,11 +216,27 @@ function videoUrlFromPid(item) {
   return findUrlField(item);
 }
 
+function parseMiguPublishTime(raw) {
+  const value = raw.publishTime || raw.updateTime || raw.createTime;
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().replace(/-/g, "/");
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
+}
+
 function mapMiguDataItem(raw, categoryId) {
   return {
     categoryId,
     duration: raw.duration || findDurationField(raw),
     imageUrl: pickMiguImage(raw),
+    publishedAt: parseMiguPublishTime(raw),
     title: cleanText(raw.name || raw.title || ""),
     url: videoUrlFromPid(raw)
   };
@@ -239,8 +255,11 @@ function extractVideosFromGroupState(groupsState, category) {
 
   const seenTitles = new Set();
   const videos = [];
+  const components = [...(groupBody.components ?? [])]
+    .filter((component) => (component.data?.length ?? 0) > 0)
+    .sort((left, right) => Number(left.sortValue ?? 0) - Number(right.sortValue ?? 0));
 
-  for (const component of groupBody.components ?? []) {
+  for (const component of components) {
     for (const raw of component.data ?? []) {
       if (raw.programTypeV2 === "LIVE" || raw.videoType === "LIVE") {
         continue;
@@ -531,29 +550,39 @@ function extractMiguVideos(html) {
 }
 
 function toDbRows(sections) {
-  const now = Date.now();
+  return sections.flatMap((section) => {
+    const datedItems = section.items.filter((item) => item.publishedAt);
+    const latestPublishedAt = datedItems.reduce((latest, item) => {
+      const time = new Date(item.publishedAt).getTime();
+      return time > latest ? time : latest;
+    }, 0);
 
-  return sections.flatMap((section) =>
-    section.items.map((item, index) => ({
-      body: [`视频来源于咪咕视频「${section.markers[0]}」栏目。点击播放按钮可前往咪咕查看完整视频。`],
-      content_type: "video",
-      display_order: index + 1,
-      duration: item.duration,
-      eyebrow: section.label,
-      external_url: item.url,
-      id: `migu-${section.id}-${createHash("sha1").update(item.title).digest("hex").slice(0, 12)}`,
-      image_url: item.imageUrl,
-      published_at: new Date(now - index * 60 * 1000).toISOString(),
-      section: "videos",
-      slug: slugify(section.id, item.title, index),
-      source: "咪咕视频",
-      summary: `${section.label}：${item.title}`,
-      tags: ["世界杯", "咪咕视频", section.label],
-      title: item.title,
-      video_category: section.id,
-      video_url: item.url
-    }))
-  );
+    return section.items.map((item, index) => {
+      const publishedAt = item.publishedAt
+        ? item.publishedAt
+        : new Date(latestPublishedAt > 0 ? latestPublishedAt + (section.items.length - index) * 1000 : Date.now() - index * 60 * 1000).toISOString();
+
+      return {
+        body: [`视频来源于咪咕视频「${section.markers[0]}」栏目。点击播放按钮可前往咪咕查看完整视频。`],
+        content_type: "video",
+        display_order: index + 1,
+        duration: item.duration,
+        eyebrow: section.label,
+        external_url: item.url,
+        id: `migu-${section.id}-${createHash("sha1").update(item.title).digest("hex").slice(0, 12)}`,
+        image_url: item.imageUrl,
+        published_at: publishedAt,
+        section: "videos",
+        slug: slugify(section.id, item.title, index),
+        source: "咪咕视频",
+        summary: `${section.label}：${item.title}`,
+        tags: ["世界杯", "咪咕视频", section.label],
+        title: item.title,
+        video_category: section.id,
+        video_url: item.url
+      };
+    });
+  });
 }
 
 async function seed() {
@@ -668,6 +697,12 @@ async function seed() {
     }
 
     await client.query("commit");
+    const focusPreview = sections.find((section) => section.id === "focus")?.items.slice(0, 3) ?? [];
+    if (focusPreview.length > 0) {
+      console.log(
+        `Focus preview: ${focusPreview.map((item) => item.title).join(" | ")}`
+      );
+    }
     console.log(
       `Seeded ${rows.length} Migu videos: ${sections.map((section) => `${section.label} ${section.items.length}`).join(", ")}.`
     );

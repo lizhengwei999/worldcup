@@ -67,8 +67,8 @@ async function loadVideoRows() {
       .eq("section", "videos")
       .not("video_category", "is", null)
       .order("video_category", { ascending: true })
-      .order("display_order", { ascending: true })
-      .order("published_at", { ascending: false });
+      .order("published_at", { ascending: false })
+      .order("display_order", { ascending: true });
 
     if (!error && data?.length) {
       return data as VideoRow[];
@@ -89,7 +89,7 @@ async function loadVideoRows() {
     from public.worldcup_items
     where section = 'videos'
       and video_category is not null
-    order by video_category asc, display_order asc, published_at desc
+    order by video_category asc, published_at desc, display_order asc
   `);
 
   return rows;
