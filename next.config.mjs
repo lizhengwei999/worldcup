@@ -105,6 +105,22 @@ const nextConfig = {
       {
         protocol: "http",
         hostname: "**.cmvideo.cn"
+      },
+      {
+        protocol: "https",
+        hostname: "*.cctvpic.com"
+      },
+      {
+        protocol: "http",
+        hostname: "*.cctvpic.com"
+      },
+      {
+        protocol: "https",
+        hostname: "**.cctvpic.com"
+      },
+      {
+        protocol: "http",
+        hostname: "**.cctvpic.com"
       }
     ]
   }
