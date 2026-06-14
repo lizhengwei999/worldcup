@@ -50,7 +50,7 @@ jobs:
           node --version
           npm --version
           test -f package-lock.json
-          npm ci --no-audit --no-fund
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
       - name: Sync all data to Supabase
         run: npm run db:sync:all
