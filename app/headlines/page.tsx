@@ -1,6 +1,6 @@
 import { Newspaper } from "lucide-react";
 import { HeadlineCarousel } from "@/components/headline-carousel";
-import { HeadlineListItem } from "@/components/headline-list-item";
+import { HeadlinePageList } from "@/components/headline-page-list";
 import { HomeModule } from "@/components/home-module";
 import { pageHeroClass } from "@/lib/page-theme";
 import { getNewsItems } from "@/lib/content-service";
@@ -8,7 +8,7 @@ import { getSection } from "@/lib/worldcup-data";
 
 export default async function HeadlinesPage() {
   const section = getSection("headlines");
-  const items = await getNewsItems("headlines", 12);
+  const items = await getNewsItems("headlines", 100);
   const carouselItems = items.slice(0, 6);
 
   return (
@@ -41,11 +41,7 @@ export default async function HeadlinesPage() {
             最新头条
           </span>
         </div>
-        <div className="divide-y divide-paper/8">
-          {items.map((item, index) => (
-            <HeadlineListItem index={index} item={item} key={item.id} />
-          ))}
-        </div>
+        <HeadlinePageList items={items} />
       </HomeModule>
     </main>
   );

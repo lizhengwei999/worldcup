@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { ModuleNavShell, moduleTabClass } from "@/components/module-nav";
 import { useState } from "react";
 
-export const VIDEOS_PAGE_SIZE = 12;
+export const VIDEOS_PAGE_SIZE = 9;
 
 export type VideoItem = {
   duration: string;
