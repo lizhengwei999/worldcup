@@ -53,6 +53,15 @@ function getDatabaseUrl() {
   url.searchParams.delete("sslmode");
   url.searchParams.delete("sslrootcert");
 
+  if (url.hostname.includes("pooler.supabase.com") && url.username.includes(".")) {
+    const projectRef = url.username.split(".")[1];
+    if (projectRef) {
+      url.hostname = `db.${projectRef}.supabase.co`;
+      url.username = "postgres";
+      url.port = "5432";
+    }
+  }
+
   return url.toString();
 }
 

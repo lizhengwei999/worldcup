@@ -52,12 +52,21 @@ function getDatabaseUrl() {
   url.searchParams.delete("sslmode");
   url.searchParams.delete("sslrootcert");
 
+  if (url.hostname.includes("pooler.supabase.com") && url.username.includes(".")) {
+    const projectRef = url.username.split(".")[1];
+    if (projectRef) {
+      url.hostname = `db.${projectRef}.supabase.co`;
+      url.username = "postgres";
+      url.port = "5432";
+    }
+  }
+
   return url.toString();
 }
 
 const baiduWorldCupUrl =
   process.env.BAIDU_WORLDCUP_URL ??
-  "https://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&rsv_idx=1&tn=baidu&wd=%E4%B8%96%E7%95%8C%E6%9D%AF&fenlei=256&rqlang=en&rsv_enter=1&rsv_dl=tb_click&rsv_btype=i";
+  "https://www.baidu.com/s?ie=utf-8&f=3&rsv_bp=1&rsv_idx=1&tn=baidu&wd=%E4%B8%96%E7%95%8C%E6%9D%AF&fenlei=256&rsv_enter=1&rsv_btype=i";
 
 const headlineItems = [
   {
