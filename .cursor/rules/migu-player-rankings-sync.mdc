@@ -1,0 +1,44 @@
+---
+description: 咪咕球员排名与数据库同步规则（/standings 球员排名 Tab）
+globs:
+  - scripts/seed-migu-player-rankings.mjs
+  - lib/migu-player-rankings.ts
+  - lib/player-rankings-service.ts
+  - components/player-rankings-board.tsx
+  - app/standings/**
+  - supabase/player-rankings.sql
+alwaysApply: false
+---
+
+# 咪咕球员排名同步记忆
+
+更新 `/standings`「球员排名」或同步球员榜数据时，数据来自咪咕世界杯球员榜 API，不是百度。
+
+## 咪咕链接（固定）
+
+**页面参考**：
+https://www.miguvideo.com/mgs/website/prd/usmcaCup2026MatchData.html?seasonIdFk=110000005666&competitionId=100000000991&tab=player
+
+**数据 API**（实际采集地址）：
+`https://webapi.miguvideo.com/gateway/oes-sport-static/300/football/figures/ranking/{seasonIdFk}/{statisticsType}`
+
+- `seasonIdFk` = `110000005666`
+- `competitionId` = `100000000991`（页面参数，API 路径不用）
+- 示例助攻榜：`.../ranking/110000005666/30`
+
+## 统计类型（必须遵守）
+
+射手29 · 助攻30 · 射门33 · 射正34 · 传球35 · 关键传球36 · 传球成功率37 · 抢断38 · 拦截39 · 解围41 · 扑救42 · 黄牌31 · 红牌32 · 犯规43 · 被犯规44 · 出场27 · 首发28 · 出场时间45 · 过人40
+
+越位暂无 statType（页面空态）。完整映射见 `lib/migu-player-rankings.ts`。
+
+## 入库
+
+- 表：`public.worldcup_player_rankings`
+- 命令：`npm run db:seed:migu-player-rankings`
+- 脚本：`scripts/seed-migu-player-rankings.mjs`
+- 策略：按 `stat_type` 全量替换该类型下所有行
+
+## 详细文档
+
+见 `docs/migu-player-rankings-sync.md`

@@ -11,7 +11,8 @@ begin
     'worldcup_standings',
     'worldcup_schedule_days',
     'worldcup_schedule_matches',
-    'worldcup_schedule_match_details'
+    'worldcup_schedule_match_details',
+    'worldcup_player_rankings'
   ]
   loop
     execute format('grant select on public.%I to anon, authenticated', table_name);

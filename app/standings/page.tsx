@@ -3,6 +3,7 @@ import { pageHeroClass } from "@/lib/page-theme";
 import { Trophy } from "lucide-react";
 import type { RankingPanel } from "./standings-stage";
 import { StandingsStage } from "./standings-stage";
+import { getPlayerRankCategories } from "@/lib/player-rankings-service";
 import { getStandingGroups } from "@/lib/standings-service";
 
 type StandingsPageProps = {
@@ -14,8 +15,14 @@ type StandingsPageProps = {
 export default async function StandingsPage({ searchParams }: StandingsPageProps) {
   const params = await searchParams;
   const rankChildTab = Array.isArray(params?.rankChildTab) ? params?.rankChildTab[0] : params?.rankChildTab;
-  const initialPanel: RankingPanel = rankChildTab === "teamRank" ? "teamRank" : "matchUp";
+  const initialPanel: RankingPanel =
+    rankChildTab === "teamRank"
+      ? "teamRank"
+      : rankChildTab === "playerRank"
+        ? "playerRank"
+        : "matchUp";
   const standingGroups = await getStandingGroups();
+  const playerRankCategories = await getPlayerRankCategories();
 
   return (
     <main className="min-h-dvh">
@@ -33,7 +40,11 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
       </section>
 
       <HomeModule className="mt-4">
-        <StandingsStage groups={standingGroups} initialPanel={initialPanel} />
+        <StandingsStage
+          groups={standingGroups}
+          initialPanel={initialPanel}
+          playerRankCategories={playerRankCategories}
+        />
       </HomeModule>
     </main>
   );

@@ -14,6 +14,7 @@
     "db:seed:schedule": "node scripts/seed-schedule.mjs",
     "db:seed:match-details": "node scripts/seed-match-details.mjs",
     "db:seed:migu-videos": "node scripts/seed-migu-videos.mjs",
+    "db:seed:migu-player-rankings": "node scripts/seed-migu-player-rankings.mjs",
     "db:seed:baidu-all": "node scripts/seed-baidu-all.mjs"
   },
   "dependencies": {

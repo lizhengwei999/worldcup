@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ChevronRight, Info } from "lucide-react";
 import { useMemo, useState } from "react";
 import { KnockoutBracketView } from "@/components/knockout-bracket-view";
+import { PlayerRankingsBoard } from "@/components/player-rankings-board";
 import { ModuleNavShell, moduleTabClass } from "@/components/module-nav";
+import type { PlayerRankCategory } from "@/lib/player-rankings-service";
 import type { KnockoutRoundId } from "@/lib/knockout-data";
 import type { StandingGroup } from "@/lib/worldcup-data";
 import {
@@ -16,7 +18,7 @@ import {
   standingRowSurface
 } from "@/lib/standing-ui";
 
-export type RankingPanel = "matchUp" | "teamRank";
+export type RankingPanel = "matchUp" | "teamRank" | "playerRank";
 type BoardMode = "groups" | "knockout";
 
 const rankTone = ["text-alert", "text-[#FFB12B]", "text-[#FFD83D]", "text-paper"];
@@ -212,10 +214,12 @@ function TeamRankBoard({ groups }: { groups: StandingGroup[] }) {
 
 export function StandingsStage({
   groups,
-  initialPanel = "matchUp"
+  initialPanel = "matchUp",
+  playerRankCategories = []
 }: {
   groups: StandingGroup[];
   initialPanel?: RankingPanel;
+  playerRankCategories?: PlayerRankCategory[];
 }) {
   const [panel, setPanel] = useState<RankingPanel>(initialPanel);
   const [mode, setMode] = useState<BoardMode>("groups");
@@ -224,7 +228,7 @@ export function StandingsStage({
   return (
     <>
       <ModuleNavShell className="text-center">
-        <div className="grid grid-cols-2">
+        <div className="grid grid-cols-3">
           <button
             aria-pressed={panel === "matchUp"}
             className={`py-2.5 transition ${moduleTabClass(panel === "matchUp")}`}
@@ -241,10 +245,20 @@ export function StandingsStage({
           >
             球队榜
           </button>
+          <button
+            aria-pressed={panel === "playerRank"}
+            className={`py-2.5 transition ${moduleTabClass(panel === "playerRank")}`}
+            onClick={() => setPanel("playerRank")}
+            type="button"
+          >
+            球员排名
+          </button>
         </div>
       </ModuleNavShell>
 
-      {panel === "teamRank" ? (
+      {panel === "playerRank" ? (
+        <PlayerRankingsBoard categories={playerRankCategories} />
+      ) : panel === "teamRank" ? (
         <TeamRankBoard groups={groups} />
       ) : (
         <>
