@@ -6,6 +6,11 @@ export function cleanEnvValue(value) {
   return value?.trim().replace(/^["']|["']$/g, "");
 }
 
+export function resolveEnv(name, fallback = "") {
+  const value = cleanEnvValue(process.env[name]);
+  return value || fallback;
+}
+
 export async function loadEnvFile(rootDir = resolve(import.meta.dirname, "..")) {
   try {
     const envContent = await readFile(resolve(rootDir, ".env"), "utf8");

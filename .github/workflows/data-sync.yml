@@ -69,9 +69,6 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          MIGU_VIDEO_URL: ${{ secrets.MIGU_VIDEO_URL }}
-          MIGU_PLAYER_RANK_SEASON_ID: ${{ secrets.MIGU_PLAYER_RANK_SEASON_ID }}
-          MIGU_PLAYER_RANK_API_BASE: ${{ secrets.MIGU_PLAYER_RANK_API_BASE }}
 
       - name: Record sync and push to GitHub
         run: |

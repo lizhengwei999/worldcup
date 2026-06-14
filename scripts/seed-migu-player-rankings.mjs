@@ -6,15 +6,22 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import process from "node:process";
 import pg from "pg";
-import { getDatabaseUrl, loadEnvFile } from "./db-url.mjs";
+import { getDatabaseUrl, loadEnvFile, resolveEnv } from "./db-url.mjs";
 
 const { Client } = pg;
 const rootDir = resolve(import.meta.dirname, "..");
 
-const seasonId = process.env.MIGU_PLAYER_RANK_SEASON_ID ?? "110000005666";
-const apiBase =
-  process.env.MIGU_PLAYER_RANK_API_BASE ??
+const DEFAULT_SEASON_ID = "110000005666";
+const DEFAULT_API_BASE =
   "https://webapi.miguvideo.com/gateway/oes-sport-static/300/football/figures/ranking";
+
+function getSeasonId() {
+  return resolveEnv("MIGU_PLAYER_RANK_SEASON_ID", DEFAULT_SEASON_ID);
+}
+
+function getApiBase() {
+  return resolveEnv("MIGU_PLAYER_RANK_API_BASE", DEFAULT_API_BASE);
+}
 
 const categories = [
   { statType: 29, key: "goals", label: "射手榜", columnLabel: "进球", showPercent: false, categoryOrder: 1 },
@@ -47,7 +54,7 @@ const categories = [
 ];
 
 async function fetchRanking(statType) {
-  const url = `${apiBase}/${seasonId}/${statType}`;
+  const url = `${getApiBase()}/${getSeasonId()}/${statType}`;
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
@@ -236,7 +243,7 @@ async function main() {
     console.log(`seeded ${category.label}: ${players.length} players`);
   }
 
-  console.log(`Done. Upserted ${totalRows} player ranking rows for season ${seasonId}.`);
+  console.log(`Done. Upserted ${totalRows} player ranking rows for season ${getSeasonId()}.`);
 }
 
 main().catch((error) => {

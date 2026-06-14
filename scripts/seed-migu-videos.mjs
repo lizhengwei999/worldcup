@@ -3,12 +3,15 @@ import { resolve } from "node:path";
 import process from "node:process";
 import { createHash } from "node:crypto";
 import pg from "pg";
-import { getDatabaseUrl, loadEnvFile } from "./db-url.mjs";
+import { cleanEnvValue, getDatabaseUrl, loadEnvFile, resolveEnv } from "./db-url.mjs";
 
 const { Client } = pg;
 const rootDir = resolve(import.meta.dirname, "..");
-const miguVideoUrl =
-  process.env.MIGU_VIDEO_URL ?? "https://www.miguvideo.com/p/home/7a04ba680afd4b49a31913c5b36e4557";
+const DEFAULT_MIGU_VIDEO_URL = "https://www.miguvideo.com/p/home/7a04ba680afd4b49a31913c5b36e4557";
+
+function getMiguVideoUrl() {
+  return resolveEnv("MIGU_VIDEO_URL", DEFAULT_MIGU_VIDEO_URL);
+}
 
 const categories = [
   {
@@ -275,9 +278,12 @@ async function connectDatabase(connectionString) {
 }
 
 async function fetchMiguHtml() {
-  if (process.env.MIGU_VIDEO_HTML_PATH) {
-    return readFile(resolve(rootDir, process.env.MIGU_VIDEO_HTML_PATH), "utf8");
+  const htmlPath = cleanEnvValue(process.env.MIGU_VIDEO_HTML_PATH);
+  if (htmlPath) {
+    return readFile(resolve(rootDir, htmlPath), "utf8");
   }
+
+  const miguVideoUrl = getMiguVideoUrl();
 
   return withRetries(async () => {
     const response = await fetch(miguVideoUrl, {
