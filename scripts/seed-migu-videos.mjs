@@ -530,6 +530,7 @@ function toDbRows(sections) {
         duration: item.duration,
         eyebrow: section.label,
         external_url: item.url,
+        has_migu_published_at: Boolean(item.publishedAt),
         id: `migu-${section.id}-${createHash("sha1").update(item.title).digest("hex").slice(0, 12)}`,
         image_url: item.imageUrl,
         published_at: publishedAt,
@@ -544,6 +545,46 @@ function toDbRows(sections) {
       };
     });
   });
+}
+
+function normalizeDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
+}
+
+function normalizeTextArray(value) {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
+function sameTextArray(left, right) {
+  const leftValues = normalizeTextArray(left);
+  const rightValues = normalizeTextArray(right);
+  return leftValues.length === rightValues.length && leftValues.every((value, index) => value === rightValues[index]);
+}
+
+function isSameVideoRow(existing, item) {
+  return (
+    existing.section === item.section &&
+    existing.title === item.title &&
+    existing.eyebrow === item.eyebrow &&
+    existing.summary === item.summary &&
+    existing.slug === item.slug &&
+    (existing.image_url ?? "") === (item.image_url ?? "") &&
+    (existing.source ?? "") === (item.source ?? "") &&
+    normalizeDate(existing.published_at) === normalizeDate(item.published_at) &&
+    existing.content_type === item.content_type &&
+    (existing.video_url ?? "") === (item.video_url ?? "") &&
+    (existing.external_url ?? "") === (item.external_url ?? "") &&
+    (existing.video_category ?? "") === (item.video_category ?? "") &&
+    (existing.duration ?? "") === (item.duration ?? "") &&
+    Number(existing.display_order ?? 0) === Number(item.display_order ?? 0) &&
+    sameTextArray(existing.tags, item.tags) &&
+    sameTextArray(existing.body, item.body)
+  );
 }
 
 async function seed() {
@@ -590,8 +631,50 @@ async function seed() {
     await client.query("begin");
     await client.query(schema);
 
-    let upserted = 0;
+    const existingRows = await client.query(
+      `
+        select
+          id,
+          section,
+          title,
+          eyebrow,
+          summary,
+          slug,
+          image_url,
+          source,
+          published_at,
+          content_type,
+          video_url,
+          external_url,
+          video_category,
+          duration,
+          display_order,
+          tags,
+          body
+        from public.worldcup_items
+        where section = 'videos'
+          and id = any($1::text[])
+      `,
+      [rows.map((item) => item.id)]
+    );
+    const existingById = new Map(existingRows.rows.map((row) => [row.id, row]));
+
+    let inserted = 0;
+    let updated = 0;
+    let unchanged = 0;
+
     for (const item of rows) {
+      const existing = existingById.get(item.id);
+
+      if (existing && !item.has_migu_published_at) {
+        item.published_at = normalizeDate(existing.published_at);
+      }
+
+      if (existing && isSameVideoRow(existing, item)) {
+        unchanged += 1;
+        continue;
+      }
+
       await client.query(
         `
           insert into public.worldcup_items (
@@ -655,7 +738,12 @@ async function seed() {
           item.body
         ]
       );
-      upserted += 1;
+
+      if (existing) {
+        updated += 1;
+      } else {
+        inserted += 1;
+      }
     }
 
     const totals = await client.query(`
@@ -674,7 +762,10 @@ async function seed() {
         .join(" | ");
       console.log(`${section.label} preview: ${preview}`);
     }
-    console.log(`Upserted ${upserted} Migu videos (existing records kept).`);
+    console.log(`Migu video changes: inserted ${inserted}, updated ${updated}, unchanged ${unchanged}.`);
+    if (inserted === 0 && updated === 0) {
+      console.log("No Migu video changes detected.");
+    }
     console.log(
       `Database totals: ${totals.rows.map((row) => `${row.video_category} ${row.count}`).join(", ")}`
     );
