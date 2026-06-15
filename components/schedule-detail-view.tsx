@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowLeft, ExternalLink, MapPin } from "lucide-react";
+import { ExternalLink, MapPin } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { BackLink } from "@/components/back-link";
+import { OpenExternalLink } from "@/components/open-external-link";
 import { moduleSurfaceClass } from "@/lib/page-theme";
 import { MIGU_VIDEO_LABEL, resolveScheduleDetailDisplay } from "@/lib/schedule-match-display";
 import type { ScheduleMatchDetail } from "@/lib/schedule-service";
@@ -134,13 +135,9 @@ export function ScheduleDetailView({ detail }: { detail: ScheduleMatchDetail }) 
 
   return (
     <main className="min-h-dvh pb-2 text-paper">
-      <Link
-        className="mb-4 inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-paper/22 px-3 py-2 text-sm font-bold text-paper/85 transition hover:border-paper/40 hover:text-paper"
-        href="/schedule"
-      >
-        <ArrowLeft aria-hidden className="h-4 w-4 shrink-0" />
+      <BackLink fallbackHref="/schedule">
         返回全部赛程
-      </Link>
+      </BackLink>
 
       <article className="space-y-4">
         <section className={`rounded-[14px] px-4 py-5 ${moduleSurfaceClass}`}>
@@ -188,11 +185,9 @@ export function ScheduleDetailView({ detail }: { detail: ScheduleMatchDetail }) 
         {display.isFinished && detail.reportUrl ? (
           <section className={`rounded-[14px] px-4 py-4 ${moduleSurfaceClass}`}>
             <h2 className="text-[17px] font-black tracking-wide text-[#BDFD38]">比赛战报</h2>
-            <Link
+            <OpenExternalLink
               className="mt-3 flex gap-3 rounded-[12px] bg-paper/[0.05] p-3 ring-1 ring-inset ring-paper/10 transition hover:bg-paper/[0.08]"
               href={detail.reportUrl}
-              rel="noreferrer"
-              target="_blank"
             >
               {detail.reportImageUrl ? (
                 <span className="relative h-20 w-28 shrink-0 overflow-hidden rounded-[8px] bg-paper/10">
@@ -209,7 +204,7 @@ export function ScheduleDetailView({ detail }: { detail: ScheduleMatchDetail }) 
                 <p className="text-sm font-black leading-6 text-paper">{detail.reportTitle ?? "比赛战报"}</p>
                 <p className="mt-1 text-xs font-medium text-paper/62">{reportProvider}</p>
               </div>
-            </Link>
+            </OpenExternalLink>
           </section>
         ) : null}
 
@@ -265,14 +260,13 @@ export function ScheduleDetailView({ detail }: { detail: ScheduleMatchDetail }) 
         </section>
 
         {detail.sourceUrl ? (
-          <Link
+          <OpenExternalLink
             className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-paper/22 bg-paper/8 px-4 py-3 text-sm font-bold text-paper/88 transition hover:border-paper/40 hover:bg-paper/12"
             href={detail.sourceUrl}
-            target="_blank"
           >
             <ExternalLink aria-hidden className="h-4 w-4" />
             前往百度查看完整赛况
-          </Link>
+          </OpenExternalLink>
         ) : null}
       </article>
     </main>

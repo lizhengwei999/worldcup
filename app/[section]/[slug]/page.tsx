@@ -1,11 +1,12 @@
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, CalendarDays } from "lucide-react";
+import { notFound } from "next/navigation";
+import { CalendarDays } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { NewsDetailView } from "@/components/news-detail-view";
 import { ScheduleDetailView } from "@/components/schedule-detail-view";
+import { ScheduleLiveView } from "@/components/schedule-live-view";
 import { SchedulePreviewView } from "@/components/schedule-preview-view";
 import { getNewsItemBySlug, getRelatedNewsItems } from "@/lib/content-service";
-import { MIGU_LIVE_HOME_URL, resolveScheduleMatchDisplay } from "@/lib/schedule-match-display";
+import { resolveScheduleMatchDisplay } from "@/lib/schedule-match-display";
 import {
   getScheduleMatchBySlug,
   getScheduleMatchPreviewBySlug
@@ -56,7 +57,14 @@ export default async function DetailPage({ params }: DetailPageProps) {
       const display = resolveScheduleMatchDisplay(matchEntry.match, matchEntry.dayId);
 
       if (display.isLive) {
-        redirect(MIGU_LIVE_HOME_URL);
+        return (
+          <ScheduleLiveView
+            awayName={matchEntry.match.away.name}
+            homeName={matchEntry.match.home.name}
+            kickLabel={`${matchEntry.dayId} ${matchEntry.match.time}`}
+            matchStage={matchEntry.match.group}
+          />
+        );
       }
 
       if (display.isFinished && scheduleDetail) {
@@ -124,13 +132,9 @@ export default async function DetailPage({ params }: DetailPageProps) {
 
   return (
     <main className="min-h-dvh pb-2 text-paper">
-      <Link
-        className="mb-4 inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-paper/22 px-3 py-2 text-sm font-bold text-paper/85 transition hover:border-paper/40 hover:text-paper"
-        href={sectionInfo?.href ?? "/"}
-      >
-        <ArrowLeft aria-hidden className="h-4 w-4 shrink-0" />
+      <BackLink fallbackHref={sectionInfo?.href ?? "/"}>
         返回{sectionInfo?.title ?? "首页"}
-      </Link>
+      </BackLink>
 
       <article className="overflow-hidden rounded-[14px] bg-gradient-to-b from-[#1668D6] to-[#125AC4] p-5 shadow-[0_10px_28px_rgba(0,35,120,0.24)] ring-1 ring-inset ring-paper/12">
         <p className="text-xs font-black tracking-wide text-[#BDFD38]">{item.eyebrow}</p>

@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, ExternalLink, Link2, Play } from "lucide-react";
+import { CalendarDays, ExternalLink, Link2, Play } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { BaiduLink } from "@/components/baidu-link";
+import { OpenExternalLink } from "@/components/open-external-link";
 import { moduleSurfaceClass } from "@/lib/page-theme";
 import type { NewsItem } from "@/lib/worldcup-data";
 import { getBaiduUrlForTitle } from "@/lib/worldcup-data";
@@ -40,13 +42,9 @@ export function NewsDetailView({
 
   return (
     <main className="min-h-dvh pb-2 text-paper">
-      <Link
-        className="mb-4 inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-paper/22 px-3 py-2 text-sm font-bold text-paper/85 transition hover:border-paper/40 hover:text-paper"
-        href={sectionInfo?.href ?? "/"}
-      >
-        <ArrowLeft aria-hidden className="h-4 w-4 shrink-0" />
+      <BackLink fallbackHref={sectionInfo?.href ?? "/"}>
         返回{sectionInfo?.title ?? "首页"}
-      </Link>
+      </BackLink>
 
       <article className="space-y-4">
         <header
@@ -87,23 +85,21 @@ export function NewsDetailView({
           {item.tags.length > 0 ? (
             <div className="mt-5 flex flex-wrap gap-2">
               {item.tags.map((tag) => (
-                <Link
+                <OpenExternalLink
                   className="rounded-md border border-paper/18 bg-paper/8 px-2.5 py-1 text-xs font-bold text-paper/78 transition hover:border-[#BDFD38]/40 hover:text-[#BDFD38]"
                   href={getBaiduUrlForTitle(`美加墨世界杯 ${tag}`)}
                   key={tag}
-                  target="_blank"
                 >
                   {tag}
-                </Link>
+                </OpenExternalLink>
               ))}
             </div>
           ) : null}
 
           {videoPlaybackUrl ? (
-            <Link
+            <OpenExternalLink
               className="group mt-6 block overflow-hidden rounded-[14px] bg-ink/35 shadow-[0_12px_30px_rgba(0,24,96,0.25)] ring-1 ring-inset ring-paper/14"
               href={videoPlaybackUrl}
-              target="_blank"
             >
               <div className="relative aspect-video min-h-[11rem] w-full">
                 <Image
@@ -130,7 +126,7 @@ export function NewsDetailView({
                 </p>
                 <ExternalLink aria-hidden className="h-4 w-4 shrink-0 text-[#BDFD38]" />
               </div>
-            </Link>
+            </OpenExternalLink>
           ) : null}
 
           <div className="mt-6 space-y-4 text-[15px] leading-[1.8] text-paper/84">
@@ -141,33 +137,30 @@ export function NewsDetailView({
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             {videoPlaybackUrl ? (
-              <Link
+              <OpenExternalLink
                 className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[#BDFD38] px-4 py-3 text-sm font-black text-[#0B55D9] transition hover:bg-paper"
                 href={videoPlaybackUrl}
-                target="_blank"
               >
                 <Play aria-hidden className="h-4 w-4 fill-current" strokeWidth={3} />
-                打开视频播放页
-              </Link>
+                打开视频播放页（新标签页）
+              </OpenExternalLink>
             ) : (
               <BaiduLink title={item.title} variant="onBlue" />
             )}
-            <Link
+            <OpenExternalLink
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-paper/22 bg-paper/8 px-4 py-3 text-sm font-bold text-paper/88 transition hover:border-paper/40 hover:bg-paper/12"
               href={getBaiduUrlForTitle(item.title)}
-              target="_blank"
             >
               <Link2 aria-hidden className="h-4 w-4 shrink-0" />
               标题检索链接
-            </Link>
-            <Link
+            </OpenExternalLink>
+            <OpenExternalLink
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-paper/22 bg-paper/8 px-4 py-3 text-sm font-bold text-paper/88 transition hover:border-paper/40 hover:bg-paper/12 sm:flex-1"
               href={getBaiduUrlForTitle(item.title)}
-              target="_blank"
             >
               <ExternalLink aria-hidden className="h-4 w-4 shrink-0" />
               前往百度看实时内容
-            </Link>
+            </OpenExternalLink>
           </div>
         </section>
 

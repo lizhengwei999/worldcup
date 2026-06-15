@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Shield } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { OpenExternalLink } from "@/components/open-external-link";
 import type { ScheduleMatch, TeamRef } from "@/lib/schedule-data";
 import { MIGU_LIVE_HOME_URL, resolveScheduleMatchDisplay } from "@/lib/schedule-match-display";
 import { standingRowSurface } from "@/lib/standing-ui";
@@ -48,15 +49,11 @@ export function ScheduleMatchRow({
 
   const homeScore = match.homeScore && match.homeScore !== "-" ? match.homeScore : "—";
   const awayScore = match.awayScore && match.awayScore !== "-" ? match.awayScore : "—";
-  const rowHref = display.isLive ? MIGU_LIVE_HOME_URL : href;
 
-  return (
-    <Link
-      className={`${scheduleMatchGridClass} text-paper transition hover:bg-paper/12 ${rowSurface} ${className}`.trim()}
-      href={rowHref}
-      rel={display.isLive ? "noopener noreferrer" : undefined}
-      target={display.isLive ? "_blank" : undefined}
-    >
+  const rowClassName = `${scheduleMatchGridClass} text-paper transition hover:bg-paper/12 ${rowSurface} ${className}`.trim();
+
+  const rowContent = (
+    <>
       <div className="w-[6.75rem] shrink-0">
         <p className="font-display text-lg font-bold leading-none tabular-nums tracking-wide">{match.time}</p>
         <p className="mt-1.5 text-xs font-medium leading-snug text-paper/45">{match.group}</p>
@@ -82,6 +79,20 @@ export function ScheduleMatchRow({
         <p>{display.statusLabel}</p>
         <p className="text-xs text-paper/78">{display.liveLabel}</p>
       </div>
+    </>
+  );
+
+  if (display.isLive) {
+    return (
+      <OpenExternalLink className={rowClassName} href={MIGU_LIVE_HOME_URL}>
+        {rowContent}
+      </OpenExternalLink>
+    );
+  }
+
+  return (
+    <Link className={rowClassName} href={href}>
+      {rowContent}
     </Link>
   );
 }

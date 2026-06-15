@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { Home } from "lucide-react";
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
+import { NavigationTracker } from "@/components/navigation-tracker";
 import { isTabBlueRoute, TAB_PAGE_SHELL_CLASS } from "@/lib/tab-routes";
 import { sections } from "@/lib/worldcup-data";
 
@@ -25,6 +27,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-ink/95 text-ink">
+      <Suspense fallback={null}>
+        <NavigationTracker />
+      </Suspense>
       <div className="app-phone-shell mx-auto min-h-dvh w-full max-w-[430px] bg-paper pb-[calc(5rem+env(safe-area-inset-bottom))] shadow-2xl">
         {tabBlueBackground ? <div className={TAB_PAGE_SHELL_CLASS}>{children}</div> : children}
       </div>

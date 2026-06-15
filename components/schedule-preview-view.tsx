@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { BackLink } from "@/components/back-link";
+import { OpenExternalLink } from "@/components/open-external-link";
 import { moduleSurfaceClass } from "@/lib/page-theme";
 import type { ScheduleMatchPreview } from "@/lib/schedule-preview-service";
 
@@ -47,13 +48,9 @@ export function SchedulePreviewView({ preview }: { preview: ScheduleMatchPreview
 
   return (
     <main className="min-h-dvh pb-2 text-paper">
-      <Link
-        className="mb-4 inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-paper/22 px-3 py-2 text-sm font-bold text-paper/85 transition hover:border-paper/40 hover:text-paper"
-        href="/schedule"
-      >
-        <ArrowLeft aria-hidden className="h-4 w-4 shrink-0" />
+      <BackLink fallbackHref="/schedule">
         返回全部赛程
-      </Link>
+      </BackLink>
 
       <article className="space-y-4">
         <section className={`rounded-[14px] px-4 py-5 ${moduleSurfaceClass}`}>
@@ -99,15 +96,13 @@ export function SchedulePreviewView({ preview }: { preview: ScheduleMatchPreview
         ) : null}
 
         <section className={`rounded-[14px] px-4 py-4 ${moduleSurfaceClass}`}>
-          <Link
+          <OpenExternalLink
             className="inline-flex min-h-[40px] items-center gap-2 text-sm font-bold text-[#BDFD38] transition hover:text-paper"
             href={preview.baiduSearchUrl}
-            rel="noreferrer"
-            target="_blank"
           >
             <ExternalLink aria-hidden className="h-4 w-4 shrink-0" />
             在百度搜索更多赛前信息
-          </Link>
+          </OpenExternalLink>
           <p className="mt-2 text-xs text-paper/50">内容来源：百度搜索，仅供赛前参考</p>
         </section>
       </article>
