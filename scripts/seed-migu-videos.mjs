@@ -8,9 +8,21 @@ import { cleanEnvValue, getDatabaseUrl, loadEnvFile, resolveEnv } from "./db-url
 const { Client } = pg;
 const rootDir = resolve(import.meta.dirname, "..");
 const DEFAULT_MIGU_VIDEO_URL = "https://www.miguvideo.com/p/home/7a04ba680afd4b49a31913c5b36e4557";
+const DEFAULT_MIGU_PAGE_ID = "7a04ba680afd4b49a31913c5b36e4557";
+const DISPLAY_API_BASE = "https://webapi.miguvideo.com/gateway/display/v3/static";
 
 function getMiguVideoUrl() {
   return resolveEnv("MIGU_VIDEO_URL", DEFAULT_MIGU_VIDEO_URL);
+}
+
+function getMiguPageId() {
+  const configured = cleanEnvValue(process.env.MIGU_VIDEO_PAGE_ID);
+  if (configured) {
+    return configured;
+  }
+
+  const matched = getMiguVideoUrl().match(/\/p\/home\/([^/?#]+)/i);
+  return matched?.[1] ?? DEFAULT_MIGU_PAGE_ID;
 }
 
 const categories = [
@@ -188,6 +200,71 @@ function mapMiguDataItem(raw, categoryId) {
     title: cleanText(raw.name || raw.title || ""),
     url: videoUrlFromPid(raw)
   };
+}
+
+function findCategoryComponentIds(groupsState, category) {
+  const groupBody = groupsState
+    .map((entry) => entry?.body)
+    .find((body) => body && matchesCategoryGroup(body, category));
+
+  if (!groupBody) {
+    return null;
+  }
+
+  const components = [...(groupBody.components ?? [])]
+    .filter((component) => (component.data?.length ?? 0) > 0 || component.id)
+    .sort((left, right) => countGroupDataItems({ components: [right] }) - countGroupDataItems({ components: [left] }));
+
+  const preferred =
+    components.find((component) => /瀑布流|列表|视频|图/.test(component.name ?? "")) ?? components[0];
+
+  if (!preferred?.id) {
+    return null;
+  }
+
+  return {
+    compId: preferred.id,
+    groupId: groupBody.id
+  };
+}
+
+async function fetchDisplayComponentVideos(pageId, groupId, compId, categoryId) {
+  const url = `${DISPLAY_API_BASE}/${pageId}/${groupId}/${compId}`;
+
+  return withRetries(async () => {
+    const response = await fetch(url, {
+      headers: {
+        accept: "application/json",
+        referer: "https://www.miguvideo.com/",
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Migu display API failed with HTTP ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const seenTitles = new Set();
+    const videos = [];
+
+    for (const raw of payload?.body?.data ?? []) {
+      if (raw.programTypeV2 === "LIVE" || raw.videoType === "LIVE") {
+        continue;
+      }
+
+      const item = mapMiguDataItem(raw, categoryId);
+      if (!isValidVideo(item) || seenTitles.has(item.title)) {
+        continue;
+      }
+
+      seenTitles.add(item.title);
+      videos.push(item);
+    }
+
+    return videos;
+  }, { label: `Migu display API ${categoryId}` });
 }
 
 function extractVideosFromGroupState(groupsState, category) {
@@ -477,16 +554,40 @@ function extractJsonVideos(block, categoryId) {
   return videos;
 }
 
-function extractMiguVideos(html) {
+async function extractMiguVideos(html) {
   const groupsState = parseInitialGroupsState(html);
+  const pageId = getMiguPageId();
+  const sections = [];
 
-  return categories.map((category) => {
+  for (const category of categories) {
     const stateItems = groupsState ? extractVideosFromGroupState(groupsState, category) : [];
     if (stateItems.length > 0) {
-      return {
+      sections.push({
         ...category,
         items: stateItems
-      };
+      });
+      continue;
+    }
+
+    const componentIds = groupsState ? findCategoryComponentIds(groupsState, category) : null;
+    if (componentIds) {
+      try {
+        const apiItems = await fetchDisplayComponentVideos(
+          pageId,
+          componentIds.groupId,
+          componentIds.compId,
+          category.id
+        );
+        if (apiItems.length > 0) {
+          sections.push({
+            ...category,
+            items: apiItems
+          });
+          continue;
+        }
+      } catch (error) {
+        console.warn(`Migu display API fallback failed for ${category.label}: ${error.message}`);
+      }
     }
 
     const block = getSectionBlock(html, category);
@@ -503,11 +604,13 @@ function extractMiguVideos(html) {
       uniqueItems.push(item);
     }
 
-    return {
+    sections.push({
       ...category,
       items: uniqueItems
-    };
-  });
+    });
+  }
+
+  return sections;
 }
 
 function toDbRows(sections) {
@@ -592,7 +695,7 @@ async function seed() {
 
   if (process.env.MIGU_VIDEO_DRY_RUN === "1") {
     const html = await fetchMiguHtml();
-    const sections = extractMiguVideos(html);
+    const sections = await extractMiguVideos(html);
     console.log(
       sections.map((section) => `${section.label}: ${section.items.length}`).join(", ")
     );
@@ -613,17 +716,27 @@ async function seed() {
   }
 
   const html = await fetchMiguHtml();
-  const sections = extractMiguVideos(html);
+  const sections = await extractMiguVideos(html);
   const missingSections = sections.filter((section) => section.items.length === 0).map((section) => section.label);
+  const extractedCount = sections.reduce((total, section) => total + section.items.length, 0);
 
   if (missingSections.length > 0) {
-    throw new Error(
-      `Migu video extraction did not find videos for: ${missingSections.join("、")}. ` +
-        "If the website blocks server access, save the page HTML and set MIGU_VIDEO_HTML_PATH."
+    if (extractedCount === 0) {
+      throw new Error(
+        `Migu video extraction did not find videos for: ${missingSections.join("、")}. ` +
+          "If the website blocks server access, save the page HTML and set MIGU_VIDEO_HTML_PATH."
+      );
+    }
+
+    console.warn(
+      `Migu video extraction skipped empty sections: ${missingSections.join("、")}. ` +
+        "Existing database rows for those categories are kept."
     );
   }
 
-  const rows = toDbRows(sections);
+  const activeSections = sections.filter((section) => section.items.length > 0);
+
+  const rows = toDbRows(activeSections);
   const schema = await readFile(resolve(rootDir, "supabase", "content.sql"), "utf8");
   const client = await connectDatabase(connectionString);
 
@@ -755,12 +868,15 @@ async function seed() {
     `);
 
     await client.query("commit");
-    for (const section of sections) {
+    for (const section of activeSections) {
       const preview = section.items
         .slice(0, 3)
         .map((item) => item.title)
         .join(" | ");
       console.log(`${section.label} preview: ${preview}`);
+    }
+    if (missingSections.length > 0) {
+      console.log(`Skipped sections (kept existing DB data): ${missingSections.join("、")}`);
     }
     console.log(`Migu video changes: inserted ${inserted}, updated ${updated}, unchanged ${unchanged}.`);
     if (inserted === 0 && updated === 0) {
