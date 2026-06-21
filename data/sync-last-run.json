@@ -1,6 +1,6 @@
 {
-  "beijingTime": "2026-06-22T02:23:34+0800",
-  "utcTime": "2026-06-21T18:23:34Z",
+  "beijingTime": "2026-06-22T04:32:23+0800",
+  "utcTime": "2026-06-21T20:32:23Z",
   "trigger": "github-actions",
   "workflow": "data-sync.yml"
 }
